@@ -1,20 +1,9 @@
 "use client";
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Container,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useState } from "react";
+import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
+import CustomerCard from "./CustomerCard";
 
-const customers = [
+const initialCustomers = [
   {
     name: "Jan Novák",
     phone: "777 111 222",
@@ -98,6 +87,14 @@ const customers = [
 ];
 
 export default function MainLayout({ user, onLogout }) {
+  const [customers, setCustomers] = useState(initialCustomers);
+
+  const handleUpdate = (index, updatedData) => {
+    const newCustomers = [...customers];
+    newCustomers[index] = updatedData;
+    setCustomers(newCustomers);
+  };
+
   return (
     <>
       <AppBar position="static">
@@ -118,37 +115,14 @@ export default function MainLayout({ user, onLogout }) {
         <Typography variant="h5" gutterBottom>
           Seznam zákazníků
         </Typography>
-        {customers.map((c, i) => (
-          <Accordion key={i}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>{c.name}</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <List>
-                <ListItem>
-                  <ListItemText primary="Telefon" secondary={c.phone} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Adresa" secondary={c.address} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText primary="Typ čerpadla" secondary={c.pump} />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Datum instalace"
-                    secondary={c.install}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Poslední servis"
-                    secondary={c.lastService}
-                  />
-                </ListItem>
-              </List>
-            </AccordionDetails>
-          </Accordion>
+
+        {customers.map((customer, i) => (
+          <CustomerCard
+            key={i}
+            index={i}
+            customer={customer}
+            onUpdate={handleUpdate}
+          />
         ))}
       </Container>
     </>
