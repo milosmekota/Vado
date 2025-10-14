@@ -11,6 +11,7 @@ const initialCustomers = [
     pump: "Vado 3000",
     install: "2022-05-15",
     lastService: "2023-10-01",
+    comments: [],
   },
   {
     name: "Petr Svoboda",
@@ -19,6 +20,7 @@ const initialCustomers = [
     pump: "Vado 2500",
     install: "2021-03-10",
     lastService: "2024-01-20",
+    comments: [],
   },
   {
     name: "Lucie Dvořáková",
@@ -27,6 +29,7 @@ const initialCustomers = [
     pump: "Vado 4000",
     install: "2020-07-22",
     lastService: "2023-06-18",
+    comments: [],
   },
   {
     name: "Martin Procházka",
@@ -35,6 +38,7 @@ const initialCustomers = [
     pump: "Vado 3100",
     install: "2023-01-05",
     lastService: "2024-03-12",
+    comments: [],
   },
   {
     name: "Kateřina Kučerová",
@@ -43,6 +47,7 @@ const initialCustomers = [
     pump: "Vado 2800",
     install: "2019-11-30",
     lastService: "2022-09-17",
+    comments: [],
   },
   {
     name: "Tomáš Král",
@@ -51,6 +56,7 @@ const initialCustomers = [
     pump: "Vado 2600",
     install: "2021-09-14",
     lastService: "2024-02-02",
+    comments: [],
   },
   {
     name: "Eva Malá",
@@ -59,6 +65,7 @@ const initialCustomers = [
     pump: "Vado 2900",
     install: "2022-04-21",
     lastService: "2023-11-09",
+    comments: [],
   },
   {
     name: "David Černý",
@@ -67,6 +74,7 @@ const initialCustomers = [
     pump: "Vado 3300",
     install: "2020-06-01",
     lastService: "2023-08-15",
+    comments: [],
   },
   {
     name: "Veronika Veselá",
@@ -75,6 +83,7 @@ const initialCustomers = [
     pump: "Vado 2700",
     install: "2018-02-19",
     lastService: "2022-05-23",
+    comments: [],
   },
   {
     name: "Jakub Horák",
@@ -83,16 +92,19 @@ const initialCustomers = [
     pump: "Vado 3500",
     install: "2023-07-08",
     lastService: "2024-04-10",
+    comments: [],
   },
 ];
 
 export default function MainLayout({ user, onLogout }) {
   const [customers, setCustomers] = useState(initialCustomers);
 
-  const handleUpdate = (index, updatedData) => {
-    const newCustomers = [...customers];
-    newCustomers[index] = updatedData;
-    setCustomers(newCustomers);
+  const handleUpdateCustomer = (index, updatedData) => {
+    setCustomers((prev) => {
+      const newArr = [...prev];
+      newArr[index] = updatedData;
+      return newArr;
+    });
   };
 
   return (
@@ -115,13 +127,13 @@ export default function MainLayout({ user, onLogout }) {
         <Typography variant="h5" gutterBottom>
           Seznam zákazníků
         </Typography>
-
-        {customers.map((customer, i) => (
+        {customers.map((c, i) => (
           <CustomerCard
             key={i}
+            customer={c}
             index={i}
-            customer={customer}
-            onUpdate={handleUpdate}
+            user={user}
+            onUpdate={handleUpdateCustomer}
           />
         ))}
       </Container>
