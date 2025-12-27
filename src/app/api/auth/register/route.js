@@ -1,15 +1,15 @@
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+
 if (process.env.ALLOW_REGISTRATION !== "true") {
   return NextResponse.json(
     { message: "Registrace je momentálně vypnutá" },
     { status: 403 }
   );
 }
-
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
 
 export async function POST(req) {
   try {
