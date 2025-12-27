@@ -100,7 +100,6 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
 
             <Divider sx={{ my: 2 }} />
 
-            {/* KOMENTÁŘE */}
             <Typography variant="h6" sx={{ mb: 1 }}>
               Komentáře
             </Typography>

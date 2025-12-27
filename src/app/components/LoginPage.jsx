@@ -9,14 +9,40 @@ import {
   Paper,
 } from "@mui/material";
 
+const REGISTRATION_ENABLED =
+  process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true";
+
 export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email && password) {
-      onLogin({ email });
+    setError("");
+
+    const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Chyba");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+
+      onLogin(data.user);
+    } catch (err) {
+      setError("Server nedostupný");
     }
   };
 
@@ -24,8 +50,9 @@ export default function LoginPage({ onLogin }) {
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 10 }}>
         <Typography variant="h5" gutterBottom>
-          Přihlášení
+          {isRegister ? "Registrace" : "Přihlášení"}
         </Typography>
+
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
@@ -34,7 +61,9 @@ export default function LoginPage({ onLogin }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
+
           <TextField
             fullWidth
             margin="normal"
@@ -42,10 +71,28 @@ export default function LoginPage({ onLogin }) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
+
+          {error && (
+            <Typography color="error" variant="body2">
+              {error}
+            </Typography>
+          )}
+
           <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            Přihlásit
+            {isRegister ? "Registrovat" : "Přihlásit"}
           </Button>
+
+          {REGISTRATION_ENABLED && (
+            <Button
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => setIsRegister(!isRegister)}
+            >
+              {isRegister ? "Už mám účet" : "Nemám účet – registrace"}
+            </Button>
+          )}
         </Box>
       </Paper>
     </Container>
