@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
 import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
+import { useAuth } from "@/context/AuthContext";
 import CustomerCard from "./CustomerCard";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const initialCustomers = [
   {
@@ -96,8 +98,17 @@ const initialCustomers = [
   },
 ];
 
-export default function MainLayout({ user, onLogout }) {
+export default function MainLayout() {
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
   const [customers, setCustomers] = useState(initialCustomers);
+
+  if (loading) return null;
+
+  if (!user) {
+    router.replace("/login");
+    return null;
+  }
 
   const handleUpdateCustomer = (index, updatedData) => {
     setCustomers((prev) => {
@@ -117,7 +128,7 @@ export default function MainLayout({ user, onLogout }) {
           <Typography variant="body1" sx={{ mr: 2 }}>
             {user.email}
           </Typography>
-          <Button color="inherit" onClick={onLogout}>
+          <Button color="inherit" onClick={logout}>
             Odhlásit
           </Button>
         </Toolbar>

@@ -8,11 +8,13 @@ import {
   Typography,
   Paper,
 } from "@mui/material";
+import { useAuth } from "@/context/AuthContext";
 
 const REGISTRATION_ENABLED =
   process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true";
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage() {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
@@ -29,6 +31,7 @@ export default function LoginPage({ onLogin }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
 
       const data = await res.json();
@@ -38,9 +41,7 @@ export default function LoginPage({ onLogin }) {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-
-      onLogin(data.user);
+      login(data.user);
     } catch (err) {
       setError("Server nedostupný");
     }
