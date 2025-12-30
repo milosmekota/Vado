@@ -67,6 +67,15 @@ export default function MainLayout() {
         <Typography variant="h5" gutterBottom>
           Seznam zákazníků
         </Typography>
+        <Container sx={{ mt: 2, mb: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => router.push("/customers/new")}
+          >
+            Přidat zákazníka
+          </Button>
+        </Container>
         {customers.map((c, i) => (
           <CustomerCard
             key={c._id || i}
@@ -76,15 +85,6 @@ export default function MainLayout() {
             onUpdate={handleUpdateCustomer}
           />
         ))}
-      </Container>
-      <Container sx={{ mt: 2, mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => router.push("/customers/new")}
-        >
-          Přidat zákazníka
-        </Button>
       </Container>
     </>
   );
