@@ -15,6 +15,15 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
+const formatCzechDate = (isoDate) => {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 export default function CustomerCard({ customer, index, onUpdate, user }) {
   const [editMode, setEditMode] = useState(false);
   const [data, setData] = useState({
@@ -36,14 +45,11 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) {
-        throw new Error("Save failed");
-      }
+      if (!res.ok) throw new Error("Save failed");
 
       const result = await res.json();
       const updatedCustomer = result.customer;
 
-      // 🔴 KLÍČOVÉ OPRAVY
       setData(updatedCustomer);
       onUpdate(index, updatedCustomer);
       setEditMode(false);
@@ -73,12 +79,9 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to save comment");
-      }
+      if (!res.ok) throw new Error("Failed to save comment");
 
       const { customer: updatedCustomer } = await res.json();
-
       setData(updatedCustomer);
       onUpdate(index, updatedCustomer);
       setNewComment("");
@@ -92,6 +95,8 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
     Object.entries(obj).filter(
       ([key]) => !["_id", "__v", "comments"].includes(key)
     );
+
+  const isDateField = (key) => ["install", "lastService"].includes(key);
 
   return (
     <Accordion>
@@ -108,7 +113,12 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
                   <TextField
                     fullWidth
                     label={key}
-                    value={value ?? ""}
+                    type={isDateField(key) ? "date" : "text"}
+                    value={
+                      isDateField(key)
+                        ? value?.split("T")[0] ?? ""
+                        : value ?? ""
+                    }
                     onChange={(e) => handleChange(key, e.target.value)}
                   />
                 </ListItem>
@@ -131,7 +141,11 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
                 <ListItem key={key}>
                   <ListItemText
                     primary={key}
-                    secondary={String(value ?? "")}
+                    secondary={
+                      isDateField(key)
+                        ? formatCzechDate(value)
+                        : String(value ?? "")
+                    }
                     sx={{ textTransform: "capitalize" }}
                   />
                 </ListItem>
