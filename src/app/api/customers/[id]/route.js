@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { verifyToken } from "@/lib/auth";
 
-export async function PUT(req, context) {
+export async function PUT(req, { params }) {
   try {
     await connectDB();
 
@@ -12,8 +12,7 @@ export async function PUT(req, context) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await context.params;
-
+    const { id } = await params;
     const body = await req.json();
 
     const updatedCustomer = await Customer.findByIdAndUpdate(id, body, {
@@ -29,7 +28,7 @@ export async function PUT(req, context) {
 
     return NextResponse.json({ customer: updatedCustomer });
   } catch (err) {
-    console.error("UPDATE CUSTOMER ERROR:", err);
+    console.error(err);
     return NextResponse.json(
       { message: "Failed to update customer" },
       { status: 500 }

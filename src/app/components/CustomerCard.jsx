@@ -53,7 +53,7 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
     }
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
     const commentObj = {
@@ -62,12 +62,30 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
       date: new Date().toLocaleString(),
     };
 
-    setData((prev) => ({
-      ...prev,
-      comments: [commentObj, ...(prev.comments || [])],
-    }));
+    try {
+      const res = await fetch(`/api/customers/${customer._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...data,
+          comments: [commentObj, ...(data.comments || [])],
+        }),
+      });
 
-    setNewComment("");
+      if (!res.ok) {
+        throw new Error("Failed to save comment");
+      }
+
+      const { customer: updatedCustomer } = await res.json();
+
+      setData(updatedCustomer);
+      onUpdate(index, updatedCustomer);
+      setNewComment("");
+    } catch (err) {
+      console.error(err);
+      alert("Nepodařilo se uložit komentář");
+    }
   };
 
   const visibleFields = (obj) =>
