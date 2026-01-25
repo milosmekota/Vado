@@ -15,10 +15,23 @@ export async function PUT(req, { params }) {
     const { id } = await params;
     const body = await req.json();
 
+    const allowed = {
+      name: body.name,
+      phone: body.phone,
+      address: body.address,
+      pump: body.pump,
+      install: body.install,
+      lastService: body.lastService,
+    };
+
+    Object.keys(allowed).forEach((k) => {
+      if (allowed[k] === undefined) delete allowed[k];
+    });
+
     const updatedCustomer = await Customer.findOneAndUpdate(
       { _id: id, userId: user._id },
-      body,
-      { new: true }
+      { $set: allowed },
+      { new: true, runValidators: true }
     )
       .select("-userId -__v -createdAt -updatedAt")
       .lean();
@@ -50,7 +63,6 @@ export async function GET(req, { params }) {
     await connectDB();
 
     const { id } = await params;
-
     const customer = await Customer.findOne({ _id: id, userId: user._id })
       .select("-userId -__v")
       .lean();

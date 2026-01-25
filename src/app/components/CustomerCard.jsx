@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -32,23 +32,38 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
   });
   const [newComment, setNewComment] = useState("");
 
+  useEffect(() => {
+    setData({
+      ...customer,
+      comments: customer.comments || [],
+    });
+  }, [customer]);
+
   const handleChange = (field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
     try {
+      const payload = {
+        name: data.name,
+        phone: data.phone,
+        address: data.address,
+        pump: data.pump,
+        install: data.install,
+        lastService: data.lastService,
+      };
+
       const res = await fetch(`/api/customers/${customer._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Save failed");
 
-      const result = await res.json();
-      const updatedCustomer = result.customer;
+      const { customer: updatedCustomer } = await res.json();
 
       setData(updatedCustomer);
       onUpdate(index, updatedCustomer);
@@ -62,20 +77,12 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
-    const commentObj = {
-      text: newComment,
-      user: user.email,
-      date: new Date().toLocaleString(),
-    };
-
     try {
-      const res = await fetch(`/api/customers/${customer._id}`, {
-        method: "PUT",
+      const res = await fetch(`/api/customers/${customer._id}/comments`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          comments: [commentObj, ...(data.comments || [])],
-        }),
+        body: JSON.stringify({ text: newComment }),
       });
 
       if (!res.ok) throw new Error("Failed to save comment");
@@ -195,7 +202,13 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
                   >
                     <Typography>{c.text}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {c.user} — {c.date}
+                      {c.user} —{" "}
+                      {(() => {
+                        if (!c.date) return "";
+                        const ts = Date.parse(c.date);
+                        if (Number.isNaN(ts)) return String(c.date);
+                        return new Date(ts).toLocaleString("cs-CZ");
+                      })()}
                     </Typography>
                   </ListItem>
                 ))}
