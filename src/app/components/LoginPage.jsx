@@ -41,7 +41,14 @@ export default function LoginPage() {
         return;
       }
 
-      login(data.user);
+      const meRes = await fetch("/api/auth/me", { credentials: "include" });
+
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        login(meData.user);
+      } else {
+        login(data.user);
+      }
     } catch (err) {
       setError("Server nedostupný");
     }

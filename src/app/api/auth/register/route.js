@@ -11,19 +11,31 @@ export async function POST(req) {
       { status: 403 }
     );
   }
+
   try {
     await connectDB();
 
     const { email, password } = await req.json();
 
-    if (!email || !password) {
+    const safeEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+    const safePassword = typeof password === "string" ? password : "";
+
+    if (!safeEmail || !safePassword) {
       return NextResponse.json(
         { message: "Email a heslo jsou povinné" },
         { status: 400 }
       );
     }
 
-    const exists = await User.findOne({ email });
+    if (safePassword.length < 8) {
+      return NextResponse.json(
+        { message: "Heslo musí mít alespoň 8 znaků" },
+        { status: 400 }
+      );
+    }
+
+    const exists = await User.findOne({ email: safeEmail });
     if (exists) {
       return NextResponse.json(
         { message: "Uživatel již existuje" },
@@ -31,10 +43,10 @@ export async function POST(req) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(safePassword, 12);
 
     const user = await User.create({
-      email,
+      email: safeEmail,
       password: hashedPassword,
     });
 
@@ -44,9 +56,8 @@ export async function POST(req) {
       { expiresIn: "7d" }
     );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
-        token,
         user: {
           id: user._id,
           email: user.email,
@@ -55,6 +66,16 @@ export async function POST(req) {
       },
       { status: 201 }
     );
+
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return response;
   } catch (err) {
     console.error(err);
     return NextResponse.json({ message: "Chyba serveru" }, { status: 500 });
