@@ -1,5 +1,7 @@
 "use client";
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Container,
   Box,
@@ -8,13 +10,13 @@ import {
   Typography,
   Paper,
 } from "@mui/material";
-import { useAuth } from "@/context/AuthContext";
 
 const REGISTRATION_ENABLED =
   process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
@@ -36,14 +38,16 @@ export default function LoginPage() {
         credentials: "include",
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.message || "Chyba");
+        setError(data?.message || "Chyba");
         return;
       }
 
-      login(data.user);
+      // Cookie je nastavená serverem (httpOnly) -> přejdi na home
+      router.replace("/");
+      router.refresh();
     } catch {
       setError("Server nedostupný");
     } finally {
@@ -105,7 +109,7 @@ export default function LoginPage() {
             <Button
               fullWidth
               sx={{ mt: 1 }}
-              onClick={() => setIsRegister(!isRegister)}
+              onClick={() => setIsRegister((v) => !v)}
               disabled={submitting}
             >
               {isRegister ? "Už mám účet" : "Nemám účet – registrace"}

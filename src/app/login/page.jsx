@@ -1,21 +1,10 @@
-"use client";
-
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import LoginPage from "@/app/components/LoginPage";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
-export default function Login() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/");
-    }
-  }, [user, loading, router]);
-
-  if (loading || user) return null;
+export default async function Login() {
+  const user = await getCurrentUser();
+  if (user) redirect("/");
 
   return <LoginPage />;
 }

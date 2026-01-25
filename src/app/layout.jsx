@@ -1,10 +1,10 @@
-import { AuthProvider } from "@/context/AuthContext";
+import ThemeRegistry from "./ThemeRegistry";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="cs">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeRegistry>{children}</ThemeRegistry>
       </body>
     </html>
   );
