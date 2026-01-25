@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
 
+const CommentSchema = new mongoose.Schema(
+  {
+    text: { type: String, required: true, trim: true },
+    user: { type: String, required: true, trim: true },
+    date: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
 const CustomerSchema = new mongoose.Schema(
   {
     userId: {
@@ -13,7 +22,7 @@ const CustomerSchema = new mongoose.Schema(
     pump: String,
     install: String,
     lastService: String,
-    comments: [],
+    comments: { type: [CommentSchema], default: [] },
   },
   { timestamps: true }
 );

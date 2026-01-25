@@ -19,7 +19,9 @@ export async function PUT(req, { params }) {
       { _id: id, userId: user._id },
       body,
       { new: true }
-    ).lean();
+    )
+      .select("-userId -__v -createdAt -updatedAt")
+      .lean();
 
     if (!updatedCustomer) {
       return NextResponse.json(
