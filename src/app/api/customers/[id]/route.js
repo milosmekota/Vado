@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
-import { verifyToken } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function PUT(req, { params }) {
   try {
-    await connectDB();
-
-    const user = verifyToken(req);
+    const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    await connectDB();
+
+    const { id } = params;
     const body = await req.json();
 
     const updatedCustomer = await Customer.findByIdAndUpdate(id, body, {
@@ -26,7 +26,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    return NextResponse.json({ customer: updatedCustomer });
+    return NextResponse.json(updatedCustomer);
   } catch (err) {
     console.error(err);
     return NextResponse.json(

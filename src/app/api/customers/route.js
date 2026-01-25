@@ -1,51 +1,24 @@
-import Customer from "@/models/Customer";
-import { connectDB } from "@/lib/mongodb";
-import { verifyToken } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  getCustomersByUser,
+  createCustomer,
+} from "@/services/customer.service";
 
-export async function GET(req) {
-  await connectDB();
+export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const token = req.cookies.get("token")?.value;
-  if (!token)
-    return new Response(JSON.stringify({ message: "Unauthorized" }), {
-      status: 401,
-    });
+  const customers = await getCustomersByUser(user._id);
 
-  try {
-    const decoded = verifyToken(token);
-
-    const customers = await Customer.find({}).sort({ name: 1 }).lean();
-
-    return new Response(JSON.stringify({ customers }), { status: 200 });
-  } catch (err) {
-    return new Response(JSON.stringify({ message: "Unauthorized" }), {
-      status: 401,
-    });
-  }
+  return Response.json({ customers });
 }
 
 export async function POST(req) {
-  await connectDB();
+  const user = await getCurrentUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
 
-  const token = req.cookies.get("token")?.value;
-  if (!token)
-    return new Response(JSON.stringify({ message: "Unauthorized" }), {
-      status: 401,
-    });
+  const body = await req.json();
+  const customer = await createCustomer(user._id, body);
 
-  try {
-    verifyToken(token);
-
-    const body = await req.json();
-    const newCustomer = await Customer.create(body);
-
-    return new Response(JSON.stringify({ customer: newCustomer }), {
-      status: 201,
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ message: err.message || "Chyba serveru" }),
-      { status: 500 }
-    );
-  }
+  return Response.json({ customer }, { status: 201 });
 }
