@@ -83,6 +83,11 @@ export default function MainLayout() {
             index={i}
             user={user}
             onUpdate={handleUpdateCustomer}
+            onDelete={(deleteIndex) =>
+              setCustomers((prev) =>
+                prev.filter((_, idx) => idx !== deleteIndex)
+              )
+            }
           />
         ))}
       </Container>

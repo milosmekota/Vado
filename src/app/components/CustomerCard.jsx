@@ -24,7 +24,13 @@ const formatCzechDate = (isoDate) => {
   return `${day}.${month}.${year}`;
 };
 
-export default function CustomerCard({ customer, index, onUpdate, user }) {
+export default function CustomerCard({
+  customer,
+  index,
+  onUpdate,
+  user,
+  onDelete,
+}) {
   const [editMode, setEditMode] = useState(false);
   const [data, setData] = useState({
     ...customer,
@@ -97,6 +103,39 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
     }
   };
 
+  const handleDelete = async () => {
+    const ok = window.confirm(`Opravdu chceš smazat zákazníka "${data.name}"?`);
+    if (!ok) return;
+
+    const customerId =
+      customer?._id?.toString?.() ?? String(customer?._id ?? "").trim();
+
+    if (!customerId) {
+      alert("Chybí customer id – nelze smazat.");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/customers/${encodeURIComponent(customerId)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || "Delete failed");
+      }
+
+      onDelete?.(index);
+    } catch (err) {
+      console.error(err);
+      alert("Nepodařilo se smazat zákazníka");
+    }
+  };
+
   const visibleFields = (obj) =>
     Object.entries(obj).filter(
       ([key]) => !["_id", "__v", "comments"].includes(key)
@@ -137,6 +176,9 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
               </Button>
               <Button variant="outlined" onClick={() => setEditMode(false)}>
                 Zrušit
+              </Button>
+              <Button variant="outlined" color="error" onClick={handleDelete}>
+                Smazat
               </Button>
             </Stack>
           </>
