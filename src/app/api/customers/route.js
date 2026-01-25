@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
   getCustomersByUser,
@@ -5,20 +6,54 @@ import {
 } from "@/services/customer.service";
 
 export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-  const customers = await getCustomersByUser(user._id);
+    const customers = await getCustomersByUser(user.id);
 
-  return Response.json({ customers });
+    return NextResponse.json({ customers }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to load customers" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req) {
-  const user = await getCurrentUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-  const body = await req.json();
-  const customer = await createCustomer(user._id, body);
+    const body = await req.json();
 
-  return Response.json({ customer }, { status: 201 });
+    const allowed = {
+      name: body?.name,
+      phone: body?.phone,
+      address: body?.address,
+      pump: body?.pump,
+      install: body?.install,
+      lastService: body?.lastService,
+    };
+
+    Object.keys(allowed).forEach((k) => {
+      if (allowed[k] === undefined) delete allowed[k];
+    });
+
+    const customer = await createCustomer(user.id, allowed);
+
+    return NextResponse.json({ customer }, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to create customer" },
+      { status: 500 }
+    );
+  }
 }

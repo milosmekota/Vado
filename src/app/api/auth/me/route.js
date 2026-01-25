@@ -1,28 +1,17 @@
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
+import { getCurrentUser } from "@/lib/auth";
 
-export async function GET(req) {
-  await connectDB();
-
-  const token = req.cookies.get("token")?.value;
-
-  if (!token) {
-    return NextResponse.json({ user: null }, { status: 401 });
-  }
-
+export async function GET() {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.userId).select("-password");
+    const user = await getCurrentUser();
 
     if (!user) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user }, { status: 200 });
   } catch (err) {
-    return NextResponse.json({ user: null }, { status: 401 });
+    console.error(err);
+    return NextResponse.json({ user: null }, { status: 500 });
   }
 }

@@ -19,10 +19,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSubmitting(true);
 
     const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
 
@@ -41,16 +43,11 @@ export default function LoginPage() {
         return;
       }
 
-      const meRes = await fetch("/api/auth/me", { credentials: "include" });
-
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        login(meData.user);
-      } else {
-        login(data.user);
-      }
-    } catch (err) {
+      login(data.user);
+    } catch {
       setError("Server nedostupný");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -70,6 +67,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
           />
 
           <TextField
@@ -80,16 +78,27 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete={isRegister ? "new-password" : "current-password"}
           />
 
           {error && (
-            <Typography color="error" variant="body2">
+            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
               {error}
             </Typography>
           )}
 
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            {isRegister ? "Registrovat" : "Přihlásit"}
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ mt: 2 }}
+            disabled={submitting}
+          >
+            {submitting
+              ? "Odesílám..."
+              : isRegister
+              ? "Registrovat"
+              : "Přihlásit"}
           </Button>
 
           {REGISTRATION_ENABLED && (
@@ -97,6 +106,7 @@ export default function LoginPage() {
               fullWidth
               sx={{ mt: 1 }}
               onClick={() => setIsRegister(!isRegister)}
+              disabled={submitting}
             >
               {isRegister ? "Už mám účet" : "Nemám účet – registrace"}
             </Button>

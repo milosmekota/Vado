@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
@@ -13,15 +14,23 @@ export async function PUT(req, { params }) {
     await connectDB();
 
     const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json();
 
     const allowed = {
-      name: body.name,
-      phone: body.phone,
-      address: body.address,
-      pump: body.pump,
-      install: body.install,
-      lastService: body.lastService,
+      name: body?.name,
+      phone: body?.phone,
+      address: body?.address,
+      pump: body?.pump,
+      install: body?.install,
+      lastService: body?.lastService,
     };
 
     Object.keys(allowed).forEach((k) => {
@@ -29,7 +38,7 @@ export async function PUT(req, { params }) {
     });
 
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: id, userId: user._id },
+      { _id: id, userId: user.id },
       { $set: allowed },
       { new: true, runValidators: true }
     )
@@ -43,7 +52,7 @@ export async function PUT(req, { params }) {
       );
     }
 
-    return NextResponse.json({ customer: updatedCustomer });
+    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -63,7 +72,15 @@ export async function GET(req, { params }) {
     await connectDB();
 
     const { id } = await params;
-    const customer = await Customer.findOne({ _id: id, userId: user._id })
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 }
+      );
+    }
+
+    const customer = await Customer.findOne({ _id: id, userId: user.id })
       .select("-userId -__v")
       .lean();
 
@@ -74,7 +91,7 @@ export async function GET(req, { params }) {
       );
     }
 
-    return NextResponse.json({ customer });
+    return NextResponse.json({ customer }, { status: 200 });
   } catch (err) {
     console.error(err);
     return NextResponse.json(

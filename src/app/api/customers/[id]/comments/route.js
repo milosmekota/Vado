@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
@@ -14,6 +15,13 @@ export async function POST(req, { params }) {
 
     const { id } = await params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json();
     const text = typeof body?.text === "string" ? body.text.trim() : "";
 
@@ -27,11 +35,12 @@ export async function POST(req, { params }) {
     const commentObj = {
       text,
       user: user.email,
+
       date: new Date().toISOString(),
     };
 
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: id, userId: user._id },
+      { _id: id, userId: user.id },
       {
         $push: {
           comments: {
