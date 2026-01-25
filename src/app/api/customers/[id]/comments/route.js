@@ -13,7 +13,7 @@ export async function POST(req, { params }) {
 
     await connectDB();
 
-    const { id } = await params;
+    const { id } = params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(

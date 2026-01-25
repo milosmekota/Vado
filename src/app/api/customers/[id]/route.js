@@ -4,6 +4,11 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
 
+function toObjectId(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return new mongoose.Types.ObjectId(id);
+}
+
 export async function PUT(req, { params }) {
   try {
     const user = await getCurrentUser();
@@ -13,13 +18,18 @@ export async function PUT(req, { params }) {
 
     await connectDB();
 
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const { id } = params;
+    const customerId = toObjectId(id);
+    if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
         { status: 400 }
       );
+    }
+
+    const userId = toObjectId(user.id);
+    if (!userId) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
     }
 
     const body = await req.json();
@@ -38,7 +48,7 @@ export async function PUT(req, { params }) {
     });
 
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: id, userId: user.id },
+      { _id: customerId, userId },
       { $set: allowed },
       { new: true, runValidators: true }
     )
@@ -71,16 +81,21 @@ export async function GET(req, { params }) {
 
     await connectDB();
 
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const { id } = params;
+    const customerId = toObjectId(id);
+    if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
         { status: 400 }
       );
     }
 
-    const customer = await Customer.findOne({ _id: id, userId: user.id })
+    const userId = toObjectId(user.id);
+    if (!userId) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
+    }
+
+    const customer = await Customer.findOne({ _id: customerId, userId })
       .select("-userId -__v")
       .lean();
 

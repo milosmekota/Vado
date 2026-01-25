@@ -4,8 +4,15 @@ import jwt from "jsonwebtoken";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
+const isRegistrationEnabled = () => {
+  return (
+    process.env.ALLOW_REGISTRATION === "true" ||
+    process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true"
+  );
+};
+
 export async function POST(req) {
-  if (process.env.ALLOW_REGISTRATION !== "true") {
+  if (!isRegistrationEnabled()) {
     return NextResponse.json(
       { message: "Registrace je momentálně vypnutá" },
       { status: 403 }
@@ -15,27 +22,26 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const email =
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body?.password === "string" ? body.password : "";
 
-    const safeEmail =
-      typeof email === "string" ? email.trim().toLowerCase() : "";
-    const safePassword = typeof password === "string" ? password : "";
-
-    if (!safeEmail || !safePassword) {
+    if (!email || !password) {
       return NextResponse.json(
         { message: "Email a heslo jsou povinné" },
         { status: 400 }
       );
     }
 
-    if (safePassword.length < 8) {
+    if (password.length < 8) {
       return NextResponse.json(
         { message: "Heslo musí mít alespoň 8 znaků" },
         { status: 400 }
       );
     }
 
-    const exists = await User.findOne({ email: safeEmail });
+    const exists = await User.findOne({ email }).select("_id");
     if (exists) {
       return NextResponse.json(
         { message: "Uživatel již existuje" },
@@ -43,15 +49,17 @@ export async function POST(req) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(safePassword, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
-      email: safeEmail,
+      email,
       password: hashedPassword,
     });
 
+    const userId = user._id.toString();
+
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -59,7 +67,7 @@ export async function POST(req) {
     const response = NextResponse.json(
       {
         user: {
-          id: user._id,
+          id: userId,
           email: user.email,
           role: user.role,
         },
