@@ -42,7 +42,10 @@ export default function CustomerCard({ customer, index, onUpdate, user }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          comments: [commentObj, ...(data.comments || [])],
+        }),
       });
 
       if (!res.ok) throw new Error("Save failed");
