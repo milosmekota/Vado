@@ -18,10 +18,24 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 const formatCzechDate = (isoDate) => {
   if (!isoDate) return "";
   const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return String(isoDate);
+
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const year = date.getFullYear();
   return `${day}.${month}.${year}`;
+};
+
+const formatCzechDateTime = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat("cs-CZ", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Prague",
+  }).format(d);
 };
 
 export default function CustomerCard({
@@ -244,13 +258,7 @@ export default function CustomerCard({
                   >
                     <Typography>{c.text}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {c.user} —{" "}
-                      {(() => {
-                        if (!c.date) return "";
-                        const ts = Date.parse(c.date);
-                        if (Number.isNaN(ts)) return String(c.date);
-                        return new Date(ts).toLocaleString("cs-CZ");
-                      })()}
+                      {c.user} — {formatCzechDateTime(c.date)}
                     </Typography>
                   </ListItem>
                 ))}
