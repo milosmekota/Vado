@@ -4,6 +4,38 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
 
+function toObjectId(value) {
+  try {
+    const str = String(value ?? "").trim();
+    if (!str) return null;
+    if (!mongoose.Types.ObjectId.isValid(str)) return null;
+    return new mongoose.Types.ObjectId(str);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCustomer(doc) {
+  if (!doc) return null;
+
+  return {
+    ...doc,
+    _id: doc._id?.toString?.() ?? String(doc._id ?? ""),
+    comments: Array.isArray(doc.comments)
+      ? doc.comments.map((c) => ({
+          text: c.text ?? "",
+          user: c.user ?? "",
+          date:
+            typeof c.date === "string"
+              ? c.date
+              : c.date
+              ? new Date(c.date).toISOString()
+              : "",
+        }))
+      : [],
+  };
+}
+
 export async function POST(req, { params }) {
   try {
     const user = await getCurrentUser();
@@ -13,13 +45,19 @@ export async function POST(req, { params }) {
 
     await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    const customerId = toObjectId(id);
+    if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
         { status: 400 }
       );
+    }
+
+    const userId = toObjectId(user.id);
+    if (!userId) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
     }
 
     const body = await req.json();
@@ -35,12 +73,11 @@ export async function POST(req, { params }) {
     const commentObj = {
       text,
       user: user.email,
-
       date: new Date().toISOString(),
     };
 
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: id, userId: user.id },
+      { _id: customerId, userId },
       {
         $push: {
           comments: {
@@ -61,7 +98,10 @@ export async function POST(req, { params }) {
       );
     }
 
-    return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
+    return NextResponse.json(
+      { customer: normalizeCustomer(updatedCustomer) },
+      { status: 201 }
+    );
   } catch (err) {
     console.error(err);
     return NextResponse.json(
