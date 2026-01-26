@@ -35,22 +35,6 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
 
   return (
     <>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Vado App
-          </Typography>
-
-          <Typography variant="body1" sx={{ mr: 2 }}>
-            {user.email}
-          </Typography>
-
-          <Button color="inherit" onClick={handleLogout}>
-            Odhlásit
-          </Button>
-        </Toolbar>
-      </AppBar>
-
       <Container sx={{ mt: 4 }}>
         <Typography variant="h5" gutterBottom>
           Seznam zákazníků
