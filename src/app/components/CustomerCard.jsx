@@ -62,6 +62,7 @@ export default function CustomerCard({
   onDelete,
 }) {
   const [editMode, setEditMode] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState({
     ...customer,
     comments: customer.comments || [],
@@ -74,6 +75,16 @@ export default function CustomerCard({
       comments: customer.comments || [],
     });
   }, [customer]);
+
+  useEffect(() => {
+    const handleCloseAll = () => {
+      setExpanded(false);
+      setEditMode(false);
+    };
+
+    window.addEventListener("vado:goHome", handleCloseAll);
+    return () => window.removeEventListener("vado:goHome", handleCloseAll);
+  }, []);
 
   const title = useMemo(() => {
     const fn = String(data.firstName ?? "").trim();
@@ -258,7 +269,10 @@ export default function CustomerCard({
   };
 
   return (
-    <Accordion>
+    <Accordion
+      expanded={expanded}
+      onChange={(_, isExpanded) => setExpanded(isExpanded)}
+    >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography>{title}</Typography>
       </AccordionSummary>
@@ -288,15 +302,36 @@ export default function CustomerCard({
           </>
         ) : (
           <>
-            <List>
-              {FIELD_META.map((meta) => (
-                <ListItem key={meta.key}>
-                  <ListItemText
-                    primary={meta.label}
-                    secondary={renderViewValue(meta)}
-                  />
-                </ListItem>
-              ))}
+            <List dense disablePadding>
+              {FIELD_META.map((meta) => {
+                const value = renderViewValue(meta);
+                const displayValue = String(value ?? "").trim() || "—";
+
+                return (
+                  <ListItem
+                    key={meta.key}
+                    disableGutters
+                    sx={{
+                      py: 0.8,
+                    }}
+                  >
+                    <ListItemText
+                      primary={displayValue}
+                      primaryTypographyProps={{
+                        fontSize: "1rem",
+                        lineHeight: 1.2,
+                      }}
+                      secondary={meta.label}
+                      secondaryTypographyProps={{
+                        fontSize: "0.75rem",
+                        lineHeight: 1.1,
+                        color: "text.secondary",
+                      }}
+                      sx={{ my: 0 }}
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
 
             <Button

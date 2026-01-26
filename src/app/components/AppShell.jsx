@@ -42,6 +42,14 @@ export default function AppShell({ children }) {
     window.location.href = "/login";
   };
 
+  const handleGoHome = () => {
+    // zavře otevřené Accordiony (CustomerCard bude poslouchat tento event)
+    window.dispatchEvent(new Event("vado:goHome"));
+
+    // a pak navigace na domů
+    router.push("/");
+  };
+
   return (
     <>
       {!hideNavbar && (
@@ -49,7 +57,7 @@ export default function AppShell({ children }) {
           <Toolbar>
             <Button
               color="inherit"
-              onClick={() => router.push("/")}
+              onClick={handleGoHome}
               sx={{
                 textTransform: "none",
                 fontWeight: 700,
