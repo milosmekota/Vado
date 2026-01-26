@@ -13,8 +13,6 @@ function normalizeCustomer(doc) {
   return {
     ...doc,
     _id: doc._id?.toString?.() ?? String(doc._id ?? ""),
-    // createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : undefined,
-    // updatedAt: doc.updatedAt ? new Date(doc.updatedAt).toISOString() : undefined,
     comments: Array.isArray(doc.comments)
       ? doc.comments.map((c) => ({
           text: c.text ?? "",

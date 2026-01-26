@@ -8,25 +8,67 @@ function toObjectId(value) {
   try {
     const str = String(value ?? "").trim();
     if (!str) return null;
+    if (!mongoose.Types.ObjectId.isValid(str)) return null;
     return new mongoose.Types.ObjectId(str);
   } catch {
     return null;
   }
 }
 
+function toIntOrNull(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.trunc(n);
+}
+
 function pickAllowedCustomerFields(body) {
   const allowed = {
-    name: body?.name,
+    firstName: body?.firstName,
+    lastName: body?.lastName,
+
+    email: body?.email,
     phone: body?.phone,
     address: body?.address,
-    pump: body?.pump,
-    install: body?.install,
+
+    manufacturer: body?.manufacturer,
+    serialNumber: body?.serialNumber,
+    type: body?.type,
+
+    installYear:
+      body?.installYear === "" || body?.installYear == null
+        ? null
+        : toIntOrNull(body.installYear),
+
+    online: typeof body?.online === "boolean" ? body.online : undefined,
+
     lastService: body?.lastService,
   };
 
   Object.keys(allowed).forEach((k) => {
     if (allowed[k] === undefined) delete allowed[k];
   });
+
+  const stringKeys = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "address",
+    "manufacturer",
+    "serialNumber",
+    "type",
+    "lastService",
+  ];
+
+  for (const k of stringKeys) {
+    if (typeof allowed[k] === "string") {
+      allowed[k] = allowed[k].trim();
+    }
+  }
+
+  if (typeof allowed.email === "string") {
+    allowed.email = allowed.email.toLowerCase();
+  }
 
   return allowed;
 }

@@ -1,24 +1,41 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Container, TextField, Button, Typography, Paper } from "@mui/material";
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Stack,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 
 export default function NewCustomerPage() {
   const router = useRouter();
+
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
+    email: "",
     phone: "",
     address: "",
-    pump: "",
-    install: "",
+    manufacturer: "",
+    serialNumber: "",
+    type: "",
+    installYear: "",
+    online: false,
     lastService: "",
     comments: [],
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleCancel = () => {
@@ -28,23 +45,34 @@ export default function NewCustomerPage() {
   const handleSave = async () => {
     setLoading(true);
     setError("");
+
+    const payload = {
+      ...form,
+      installYear:
+        form.installYear === "" || form.installYear == null
+          ? null
+          : Number(form.installYear),
+      online: Boolean(form.online),
+    };
+
     try {
       const res = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
         credentials: "include",
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Chyba při ukládání");
+        const data = await res.json().catch(() => ({}));
+        setError(data?.message || "Chyba při ukládání");
         setLoading(false);
         return;
       }
 
       router.push("/");
     } catch (err) {
+      console.error(err);
       setError("Server nedostupný");
       setLoading(false);
     }
@@ -60,11 +88,31 @@ export default function NewCustomerPage() {
         <TextField
           fullWidth
           label="Jméno"
-          name="name"
-          value={form.name}
+          name="firstName"
+          value={form.firstName}
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
+
+        <TextField
+          fullWidth
+          label="Příjmení"
+          name="lastName"
+          value={form.lastName}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+        />
+
+        <TextField
+          fullWidth
+          label="Email"
+          name="email"
+          type="email"
+          value={form.email}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+        />
+
         <TextField
           fullWidth
           label="Telefon"
@@ -73,6 +121,7 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
+
         <TextField
           fullWidth
           label="Adresa"
@@ -81,24 +130,58 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
+
         <TextField
           fullWidth
-          label="Pumpa"
-          name="pump"
-          value={form.pump}
+          label="Výrobce"
+          name="manufacturer"
+          value={form.manufacturer}
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
+
         <TextField
           fullWidth
-          label="Instalace"
-          name="install"
-          type="date"
-          value={form.install}
+          label="Výrobní číslo"
+          name="serialNumber"
+          value={form.serialNumber}
           onChange={handleChange}
           sx={{ mt: 2 }}
-          InputLabelProps={{ shrink: true }}
         />
+
+        <TextField
+          fullWidth
+          label="Typ"
+          name="type"
+          value={form.type}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+        />
+
+        <TextField
+          fullWidth
+          label="Rok instalace"
+          name="installYear"
+          type="number"
+          value={form.installYear}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+          inputProps={{ min: 1900, max: 3000 }}
+        />
+
+        <FormControlLabel
+          sx={{ mt: 2 }}
+          control={
+            <Checkbox
+              checked={Boolean(form.online)}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, online: e.target.checked }))
+              }
+            />
+          }
+          label="Online"
+        />
+
         <TextField
           fullWidth
           label="Poslední servis"
@@ -116,23 +199,19 @@ export default function NewCustomerPage() {
           </Typography>
         )}
 
-        <Button
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3, mr: 2 }}
-          onClick={handleSave}
-          disabled={loading}
-        >
-          Uložit
-        </Button>
-        <Button
-          variant="outlined"
-          sx={{ mt: 3 }}
-          onClick={handleCancel}
-          disabled={loading}
-        >
-          Zrušit
-        </Button>
+        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSave}
+            disabled={loading}
+          >
+            Uložit
+          </Button>
+          <Button variant="outlined" onClick={handleCancel} disabled={loading}>
+            Zrušit
+          </Button>
+        </Stack>
       </Paper>
     </Container>
   );

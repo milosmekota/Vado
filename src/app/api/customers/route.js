@@ -5,6 +5,12 @@ import {
   createCustomer,
 } from "@/services/customer.service";
 
+function toIntOrNull(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.trunc(n);
+}
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -13,7 +19,6 @@ export async function GET() {
     }
 
     const customers = await getCustomersByUser(user.id);
-
     return NextResponse.json({ customers }, { status: 200 });
   } catch (err) {
     console.error(err);
@@ -34,20 +39,41 @@ export async function POST(req) {
     const body = await req.json();
 
     const allowed = {
-      name: body?.name,
-      phone: body?.phone,
-      address: body?.address,
-      pump: body?.pump,
-      install: body?.install,
-      lastService: body?.lastService,
+      firstName: typeof body?.firstName === "string" ? body.firstName : "",
+      lastName: typeof body?.lastName === "string" ? body.lastName : "",
+
+      email: typeof body?.email === "string" ? body.email : "",
+      phone: typeof body?.phone === "string" ? body.phone : "",
+      address: typeof body?.address === "string" ? body.address : "",
+
+      manufacturer:
+        typeof body?.manufacturer === "string" ? body.manufacturer : "",
+      serialNumber:
+        typeof body?.serialNumber === "string" ? body.serialNumber : "",
+      type: typeof body?.type === "string" ? body.type : "",
+
+      installYear:
+        body?.installYear === "" || body?.installYear == null
+          ? null
+          : toIntOrNull(body.installYear),
+
+      online: Boolean(body?.online),
+
+      lastService:
+        typeof body?.lastService === "string" ? body.lastService : "",
     };
 
-    Object.keys(allowed).forEach((k) => {
-      if (allowed[k] === undefined) delete allowed[k];
-    });
+    if (typeof allowed.email === "string") {
+      allowed.email = allowed.email.trim().toLowerCase();
+    }
+    if (typeof allowed.firstName === "string") {
+      allowed.firstName = allowed.firstName.trim();
+    }
+    if (typeof allowed.lastName === "string") {
+      allowed.lastName = allowed.lastName.trim();
+    }
 
     const customer = await createCustomer(user.id, allowed);
-
     return NextResponse.json({ customer }, { status: 201 });
   } catch (err) {
     console.error(err);

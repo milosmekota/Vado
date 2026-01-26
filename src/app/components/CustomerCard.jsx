@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -12,17 +12,19 @@ import {
   Stack,
   Typography,
   Divider,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const formatCzechDate = (isoDate) => {
   if (!isoDate) return "";
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return String(isoDate);
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return String(isoDate);
 
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
+  const day = d.getDate().toString().padStart(2, "0");
+  const month = (d.getMonth() + 1).toString().padStart(2, "0");
+  const year = d.getFullYear();
   return `${day}.${month}.${year}`;
 };
 
@@ -37,6 +39,20 @@ const formatCzechDateTime = (value) => {
     timeZone: "Europe/Prague",
   }).format(d);
 };
+
+const FIELD_META = [
+  { key: "firstName", label: "Jméno", type: "text" },
+  { key: "lastName", label: "Příjmení", type: "text" },
+  { key: "email", label: "Email", type: "email" },
+  { key: "phone", label: "Telefon", type: "text" },
+  { key: "address", label: "Adresa", type: "text" },
+  { key: "manufacturer", label: "Výrobce", type: "text" },
+  { key: "serialNumber", label: "Výrobní číslo", type: "text" },
+  { key: "type", label: "Typ", type: "text" },
+  { key: "installYear", label: "Rok instalace", type: "number" },
+  { key: "online", label: "Online", type: "checkbox" },
+  { key: "lastService", label: "Poslední servis", type: "date" },
+];
 
 export default function CustomerCard({
   customer,
@@ -59,6 +75,17 @@ export default function CustomerCard({
     });
   }, [customer]);
 
+  const title = useMemo(() => {
+    const fn = String(data.firstName ?? "").trim();
+    const ln = String(data.lastName ?? "").trim();
+    const full = `${fn} ${ln}`.trim();
+
+    if (full) return full;
+    if (data.serialNumber) return `SN: ${String(data.serialNumber).trim()}`;
+    if (data.email) return String(data.email).trim();
+    return "(bez jména)";
+  }, [data.firstName, data.lastName, data.serialNumber, data.email]);
+
   const handleChange = (field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
   };
@@ -66,12 +93,20 @@ export default function CustomerCard({
   const handleSave = async () => {
     try {
       const payload = {
-        name: data.name,
-        phone: data.phone,
-        address: data.address,
-        pump: data.pump,
-        install: data.install,
-        lastService: data.lastService,
+        firstName: data.firstName ?? "",
+        lastName: data.lastName ?? "",
+        email: data.email ?? "",
+        phone: data.phone ?? "",
+        address: data.address ?? "",
+        manufacturer: data.manufacturer ?? "",
+        serialNumber: data.serialNumber ?? "",
+        type: data.type ?? "",
+        installYear:
+          data.installYear === "" || data.installYear == null
+            ? null
+            : Number(data.installYear),
+        online: Boolean(data.online),
+        lastService: data.lastService ?? "",
       };
 
       const res = await fetch(`/api/customers/${customer._id}`, {
@@ -81,7 +116,10 @@ export default function CustomerCard({
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || "Save failed");
+      }
 
       const { customer: updatedCustomer } = await res.json();
 
@@ -118,7 +156,7 @@ export default function CustomerCard({
   };
 
   const handleDelete = async () => {
-    const ok = window.confirm(`Opravdu chceš smazat zákazníka "${data.name}"?`);
+    const ok = window.confirm(`Opravdu chceš smazat zákazníka "${title}"?`);
     if (!ok) return;
 
     const customerId =
@@ -150,36 +188,88 @@ export default function CustomerCard({
     }
   };
 
-  const visibleFields = (obj) =>
-    Object.entries(obj).filter(
-      ([key]) => !["_id", "__v", "comments"].includes(key)
-    );
+  const renderViewValue = (meta) => {
+    const value = data?.[meta.key];
 
-  const isDateField = (key) => ["install", "lastService"].includes(key);
+    if (meta.type === "checkbox") return value ? "Ano" : "Ne";
+    if (meta.type === "date") return formatCzechDate(value);
+
+    if (meta.key === "installYear") {
+      return value == null || value === "" ? "" : String(value);
+    }
+
+    return String(value ?? "");
+  };
+
+  const renderEditField = (meta) => {
+    const value = data?.[meta.key];
+
+    if (meta.type === "checkbox") {
+      return (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={Boolean(value)}
+              onChange={(e) => handleChange(meta.key, e.target.checked)}
+            />
+          }
+          label={meta.label}
+        />
+      );
+    }
+
+    if (meta.type === "date") {
+      const dateValue =
+        typeof value === "string" ? value.split("T")[0] ?? "" : "";
+      return (
+        <TextField
+          fullWidth
+          label={meta.label}
+          type="date"
+          value={dateValue}
+          onChange={(e) => handleChange(meta.key, e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+      );
+    }
+
+    if (meta.type === "number") {
+      return (
+        <TextField
+          fullWidth
+          label={meta.label}
+          type="number"
+          value={value ?? ""}
+          onChange={(e) => handleChange(meta.key, e.target.value)}
+          inputProps={{ min: 1900, max: 3000 }}
+        />
+      );
+    }
+
+    return (
+      <TextField
+        fullWidth
+        label={meta.label}
+        type={meta.type || "text"}
+        value={value ?? ""}
+        onChange={(e) => handleChange(meta.key, e.target.value)}
+      />
+    );
+  };
 
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{data.name}</Typography>
+        <Typography>{title}</Typography>
       </AccordionSummary>
 
       <AccordionDetails>
         {editMode ? (
           <>
             <List>
-              {visibleFields(data).map(([key, value]) => (
-                <ListItem key={key}>
-                  <TextField
-                    fullWidth
-                    label={key}
-                    type={isDateField(key) ? "date" : "text"}
-                    value={
-                      isDateField(key)
-                        ? value?.split("T")[0] ?? ""
-                        : value ?? ""
-                    }
-                    onChange={(e) => handleChange(key, e.target.value)}
-                  />
+              {FIELD_META.map((meta) => (
+                <ListItem key={meta.key} sx={{ alignItems: "flex-start" }}>
+                  {renderEditField(meta)}
                 </ListItem>
               ))}
             </List>
@@ -199,16 +289,11 @@ export default function CustomerCard({
         ) : (
           <>
             <List>
-              {visibleFields(data).map(([key, value]) => (
-                <ListItem key={key}>
+              {FIELD_META.map((meta) => (
+                <ListItem key={meta.key}>
                   <ListItemText
-                    primary={key}
-                    secondary={
-                      isDateField(key)
-                        ? formatCzechDate(value)
-                        : String(value ?? "")
-                    }
-                    sx={{ textTransform: "capitalize" }}
+                    primary={meta.label}
+                    secondary={renderViewValue(meta)}
                   />
                 </ListItem>
               ))}
