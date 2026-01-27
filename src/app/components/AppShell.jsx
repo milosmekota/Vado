@@ -1,16 +1,28 @@
 "use client";
 
-import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useColorMode } from "@/app/ThemeRegistry";
 
 export default function AppShell({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
   const [user, setUser] = useState(null);
-
   const hideNavbar = pathname === "/login";
+
+  const { mode, toggleColorMode } = useColorMode();
 
   useEffect(() => {
     if (hideNavbar) return;
@@ -43,10 +55,7 @@ export default function AppShell({ children }) {
   };
 
   const handleGoHome = () => {
-    // zavře otevřené Accordiony (CustomerCard bude poslouchat tento event)
     window.dispatchEvent(new Event("vado:goHome"));
-
-    // a pak navigace na domů
     router.push("/");
   };
 
@@ -60,7 +69,6 @@ export default function AppShell({ children }) {
               onClick={handleGoHome}
               sx={{
                 textTransform: "none",
-                fontWeight: 700,
                 fontSize: "1.1rem",
                 px: 0,
                 minWidth: "auto",
@@ -70,6 +78,22 @@ export default function AppShell({ children }) {
             </Button>
 
             <Box sx={{ flexGrow: 1 }} />
+
+            <Tooltip
+              title={
+                mode === "dark"
+                  ? "Přepnout na denní režim"
+                  : "Přepnout na noční režim"
+              }
+            >
+              <IconButton
+                color="inherit"
+                onClick={toggleColorMode}
+                sx={{ mr: 1 }}
+              >
+                {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+              </IconButton>
+            </Tooltip>
 
             {user?.email ? (
               <Typography variant="body1" sx={{ mr: 2 }}>
