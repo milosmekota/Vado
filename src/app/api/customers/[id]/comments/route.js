@@ -55,11 +55,6 @@ export async function POST(req, { params }) {
       );
     }
 
-    const userId = toObjectId(user.id);
-    if (!userId) {
-      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
-    }
-
     const body = await req.json();
     const text = typeof body?.text === "string" ? body.text.trim() : "";
 
@@ -77,7 +72,7 @@ export async function POST(req, { params }) {
     };
 
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: customerId, userId },
+      { _id: customerId },
       {
         $push: {
           comments: {

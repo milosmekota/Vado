@@ -96,12 +96,7 @@ export async function GET(req, { params }) {
       );
     }
 
-    const userId = toObjectId(user.id);
-    if (!userId) {
-      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
-    }
-
-    const customer = await Customer.findOne({ _id: customerId, userId })
+    const customer = await Customer.findById(customerId)
       .select("-userId -__v")
       .lean();
 
@@ -140,16 +135,26 @@ export async function PUT(req, { params }) {
       );
     }
 
-    const userId = toObjectId(user.id);
-    if (!userId) {
-      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
-    }
-
     const body = await req.json();
     const allowed = pickAllowedCustomerFields(body);
 
+    const filter =
+      user.role === "admin"
+        ? { _id: customerId }
+        : { _id: customerId, userId: toObjectId(user.id) };
+
+    if (user.role !== "admin") {
+      const userId = toObjectId(user.id);
+      if (!userId) {
+        return NextResponse.json(
+          { message: "Invalid user id" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: customerId, userId },
+      filter,
       { $set: allowed },
       { new: true, runValidators: true }
     )
@@ -158,7 +163,7 @@ export async function PUT(req, { params }) {
 
     if (!updatedCustomer) {
       return NextResponse.json(
-        { message: "Customer not found" },
+        { message: "Customer not found or forbidden" },
         { status: 404 }
       );
     }
@@ -191,18 +196,28 @@ export async function DELETE(req, { params }) {
       );
     }
 
-    const userId = toObjectId(user.id);
-    if (!userId) {
-      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
+    const filter =
+      user.role === "admin"
+        ? { _id: customerId }
+        : { _id: customerId, userId: toObjectId(user.id) };
+
+    if (user.role !== "admin") {
+      const userId = toObjectId(user.id);
+      if (!userId) {
+        return NextResponse.json(
+          { message: "Invalid user id" },
+          { status: 400 }
+        );
+      }
     }
 
-    const deleted = await Customer.findOneAndDelete({ _id: customerId, userId })
+    const deleted = await Customer.findOneAndDelete(filter)
       .select("_id")
       .lean();
 
     if (!deleted) {
       return NextResponse.json(
-        { message: "Customer not found" },
+        { message: "Customer not found or forbidden" },
         { status: 404 }
       );
     }

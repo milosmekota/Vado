@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  getCustomersByUser,
-  createCustomer,
-} from "@/services/customer.service";
+import { getAllCustomers, createCustomer } from "@/services/customer.service";
 
 function toIntOrNull(value) {
   const n = Number(value);
@@ -18,7 +15,7 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const customers = await getCustomersByUser(user.id);
+    const customers = await getAllCustomers();
     return NextResponse.json({ customers }, { status: 200 });
   } catch (err) {
     console.error(err);

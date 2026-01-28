@@ -28,6 +28,16 @@ function normalizeCustomer(doc) {
   };
 }
 
+export async function getAllCustomers() {
+  await connectDB();
+
+  const docs = await Customer.find({})
+    .select("-userId -__v -createdAt -updatedAt")
+    .lean();
+
+  return docs.map(normalizeCustomer);
+}
+
 export async function getCustomersByUser(userId) {
   await connectDB();
 

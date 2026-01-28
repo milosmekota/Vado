@@ -69,7 +69,6 @@ export default function AppShell({ children }) {
               onClick={handleGoHome}
               sx={{
                 textTransform: "none",
-                fontWeight: 700,
                 fontSize: "1.1rem",
                 px: 0,
                 minWidth: "auto",
@@ -80,7 +79,6 @@ export default function AppShell({ children }) {
 
             <Box sx={{ flexGrow: 1 }} />
 
-            {/* přepínač tématu */}
             <Tooltip
               title={
                 mode === "dark"
