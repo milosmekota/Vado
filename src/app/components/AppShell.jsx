@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useColorMode } from "@/app/ThemeRegistry";
 
@@ -20,10 +20,25 @@ export default function AppShell({ children, initialUser = null }) {
   const pathname = usePathname();
 
   const [user, setUser] = useState(initialUser);
-
   const hideNavbar = pathname === "/login";
 
   const { mode, toggleColorMode } = useColorMode();
+
+  useEffect(() => {
+    const next = initialUser ?? null;
+    const prev = user ?? null;
+
+    const prevKey = prev
+      ? `${prev.id ?? ""}|${prev.email ?? ""}|${prev.role ?? ""}`
+      : "";
+    const nextKey = next
+      ? `${next.id ?? ""}|${next.email ?? ""}|${next.role ?? ""}`
+      : "";
+
+    if (prevKey !== nextKey) {
+      setUser(next);
+    }
+  }, [initialUser]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", {
