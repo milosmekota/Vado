@@ -1,6 +1,7 @@
 import ThemeRegistry from "./ThemeRegistry";
 import AppShell from "@/app/components/AppShell";
 import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
@@ -8,11 +9,13 @@ export default async function RootLayout({ children }) {
 
   const initialMode = cookieMode === "dark" ? "dark" : "light";
 
+  const initialUser = await getCurrentUser();
+
   return (
     <html lang="cs">
       <body>
         <ThemeRegistry initialMode={initialMode}>
-          <AppShell>{children}</AppShell>
+          <AppShell initialUser={initialUser}>{children}</AppShell>
         </ThemeRegistry>
       </body>
     </html>

@@ -11,38 +11,19 @@ import {
 } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useColorMode } from "@/app/ThemeRegistry";
 
-export default function AppShell({ children }) {
+export default function AppShell({ children, initialUser = null }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(initialUser);
+
   const hideNavbar = pathname === "/login";
 
   const { mode, toggleColorMode } = useColorMode();
-
-  useEffect(() => {
-    if (hideNavbar) return;
-
-    const load = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        if (!res.ok) {
-          setUser(null);
-          return;
-        }
-        const data = await res.json().catch(() => ({}));
-        setUser(data.user || null);
-      } catch {
-        setUser(null);
-      }
-    };
-
-    load();
-  }, [hideNavbar]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", {
@@ -51,6 +32,7 @@ export default function AppShell({ children }) {
       cache: "no-store",
     });
 
+    setUser(null);
     window.location.href = "/login";
   };
 
