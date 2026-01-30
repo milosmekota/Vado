@@ -14,8 +14,11 @@ import {
   Divider,
   FormControlLabel,
   Checkbox,
+  Box,
+  Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CircleIcon from "@mui/icons-material/Circle";
 
 const formatCzechDate = (isoDate) => {
   if (!isoDate) return "";
@@ -53,6 +56,51 @@ const FIELD_META = [
   { key: "online", label: "Online", type: "checkbox" },
   { key: "lastService", label: "Poslední servis", type: "date" },
 ];
+
+function addMonths(date, months) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function getServiceStatus(lastServiceValue) {
+  const raw =
+    typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
+  if (!raw) {
+    return {
+      level: "warning",
+      tooltip: "Poslední servis není vyplněný",
+    };
+  }
+
+  const last = new Date(raw);
+  if (Number.isNaN(last.getTime())) {
+    return {
+      level: "warning",
+      tooltip: "Poslední servis má neplatné datum",
+    };
+  }
+
+  const now = new Date();
+
+  const before12 = addMonths(now, -12);
+  const before24 = addMonths(now, -24);
+
+  if (last >= before12) {
+    return { level: "success", tooltip: "Servis v posledních 12 měsících" };
+  }
+  if (last >= before24) {
+    return { level: "warning", tooltip: "Servis starý 12–24 měsíců" };
+  }
+  return { level: "error", tooltip: "Servis starší než 24 měsíců" };
+}
+
+function statusColorSx(level) {
+  // bereme barvy z MUI theme palety
+  if (level === "success") return { color: "success.main" };
+  if (level === "error") return { color: "error.main" };
+  return { color: "warning.main" };
+}
 
 export default function CustomerCard({
   customer,
@@ -96,6 +144,10 @@ export default function CustomerCard({
     if (data.email) return String(data.email).trim();
     return "(bez jména)";
   }, [data.firstName, data.lastName, data.serialNumber, data.email]);
+
+  const serviceStatus = useMemo(() => {
+    return getServiceStatus(data?.lastService);
+  }, [data?.lastService]);
 
   const handleChange = (field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -274,7 +326,16 @@ export default function CustomerCard({
       onChange={(_, isExpanded) => setExpanded(isExpanded)}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>{title}</Typography>
+        <Typography sx={{ flexGrow: 1 }}>{title}</Typography>
+
+        <Tooltip title={serviceStatus.tooltip} arrow>
+          <Box sx={{ display: "inline-flex", alignItems: "center", mr: 1 }}>
+            <CircleIcon
+              fontSize="small"
+              sx={statusColorSx(serviceStatus.level)}
+            />
+          </Box>
+        </Tooltip>
       </AccordionSummary>
 
       <AccordionDetails>
