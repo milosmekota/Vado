@@ -18,7 +18,9 @@ import {
   Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CircleIcon from "@mui/icons-material/Circle";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ErrorIcon from "@mui/icons-material/Error";
 
 const formatCzechDate = (isoDate) => {
   if (!isoDate) return "";
@@ -95,11 +97,14 @@ function getServiceStatus(lastServiceValue) {
   return { level: "error", tooltip: "Servis starší než 24 měsíců" };
 }
 
-function statusColorSx(level) {
-  // bereme barvy z MUI theme palety
-  if (level === "success") return { color: "success.main" };
-  if (level === "error") return { color: "error.main" };
-  return { color: "warning.main" };
+function StatusIcon({ level }) {
+  if (level === "success") {
+    return <CheckCircleIcon fontSize="small" sx={{ color: "success.main" }} />;
+  }
+  if (level === "error") {
+    return <ErrorIcon fontSize="small" sx={{ color: "error.main" }} />;
+  }
+  return <WarningAmberIcon fontSize="small" sx={{ color: "warning.main" }} />;
 }
 
 export default function CustomerCard({
@@ -330,10 +335,7 @@ export default function CustomerCard({
 
         <Tooltip title={serviceStatus.tooltip} arrow>
           <Box sx={{ display: "inline-flex", alignItems: "center", mr: 1 }}>
-            <CircleIcon
-              fontSize="small"
-              sx={statusColorSx(serviceStatus.level)}
-            />
+            <StatusIcon level={serviceStatus.level} />
           </Box>
         </Tooltip>
       </AccordionSummary>
