@@ -1,7 +1,7 @@
 "use client";
 
-import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
-import { useState, useCallback } from "react";
+import { Typography, Button, Container, Box } from "@mui/material";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CustomerCard from "./CustomerCard";
 
@@ -10,6 +10,8 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
   const user = initialUser;
 
   const [customers, setCustomers] = useState(initialCustomers ?? []);
+
+  const [expandedId, setExpandedId] = useState(null);
 
   const handleUpdateCustomer = useCallback((index, updatedData) => {
     setCustomers((prev) => {
@@ -23,43 +25,75 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
     setCustomers((prev) => prev.filter((_, idx) => idx !== deleteIndex));
   }, []);
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-    });
-
-    window.location.href = "/login";
-  };
+  useEffect(() => {
+    const closeExpanded = () => setExpandedId(null);
+    window.addEventListener("vado:goHome", closeExpanded);
+    return () => window.removeEventListener("vado:goHome", closeExpanded);
+  }, []);
 
   return (
     <>
       <Container sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom>
-          Seznam zákazníků
-        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "row", sm: "column" },
+            alignItems: { xs: "center", sm: "flex-start" },
+            justifyContent: { xs: "space-between", sm: "flex-start" },
+            gap: { xs: 2, sm: 1 },
+            mb: 2,
+          }}
+        >
+          <Typography variant="h5" sx={{ mb: 0, lineHeight: 1.2 }}>
+            Seznam zákazníků
+          </Typography>
 
-        <Container sx={{ mt: 2, mb: 2 }}>
           <Button
             variant="contained"
             color="primary"
             onClick={() => router.push("/customers/new")}
+            aria-label="Přidat zákazníka"
+            sx={{
+              alignSelf: { xs: "auto", sm: "flex-start" },
+              minWidth: { xs: 44, sm: "auto" },
+              px: { xs: 1.5, sm: 2 },
+              flexShrink: 0,
+            }}
           >
-            Přidat zákazníka
+            <Box
+              component="span"
+              sx={{ display: { xs: "inline", sm: "none" } }}
+            >
+              +
+            </Box>
+            <Box
+              component="span"
+              sx={{ display: { xs: "none", sm: "inline" } }}
+            >
+              Přidat zákazníka
+            </Box>
           </Button>
-        </Container>
+        </Box>
 
-        {customers.map((c, i) => (
-          <CustomerCard
-            key={c._id}
-            customer={c}
-            index={i}
-            user={user}
-            onUpdate={handleUpdateCustomer}
-            onDelete={() => handleDeleteCustomer(i)}
-          />
-        ))}
+        {customers.map((c, i) => {
+          const id = c?._id?.toString?.() ?? String(c?._id ?? "");
+          const isExpanded = expandedId === id;
+
+          return (
+            <CustomerCard
+              key={id}
+              customer={c}
+              index={i}
+              user={user}
+              onUpdate={handleUpdateCustomer}
+              onDelete={() => handleDeleteCustomer(i)}
+              expanded={isExpanded}
+              onExpandedChange={(nextExpanded) => {
+                setExpandedId(nextExpanded ? id : null);
+              }}
+            />
+          );
+        })}
       </Container>
     </>
   );

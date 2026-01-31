@@ -69,31 +69,22 @@ function getServiceStatus(lastServiceValue) {
   const raw =
     typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
   if (!raw) {
-    return {
-      level: "warning",
-      tooltip: "Poslední servis není vyplněný",
-    };
+    return { level: "warning", tooltip: "Poslední servis není vyplněný" };
   }
 
   const last = new Date(raw);
   if (Number.isNaN(last.getTime())) {
-    return {
-      level: "warning",
-      tooltip: "Poslední servis má neplatné datum",
-    };
+    return { level: "warning", tooltip: "Poslední servis má neplatné datum" };
   }
 
   const now = new Date();
-
   const before12 = addMonths(now, -12);
   const before24 = addMonths(now, -24);
 
-  if (last >= before12) {
+  if (last >= before12)
     return { level: "success", tooltip: "Servis v posledních 12 měsících" };
-  }
-  if (last >= before24) {
+  if (last >= before24)
     return { level: "warning", tooltip: "Servis starý 12–24 měsíců" };
-  }
   return { level: "error", tooltip: "Servis starší než 24 měsíců" };
 }
 
@@ -113,13 +104,16 @@ export default function CustomerCard({
   onUpdate,
   user,
   onDelete,
+  expanded = false,
+  onExpandedChange,
 }) {
   const [editMode, setEditMode] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+
   const [data, setData] = useState({
     ...customer,
     comments: customer.comments || [],
   });
+
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
@@ -131,13 +125,16 @@ export default function CustomerCard({
 
   useEffect(() => {
     const handleCloseAll = () => {
-      setExpanded(false);
       setEditMode(false);
     };
 
     window.addEventListener("vado:goHome", handleCloseAll);
     return () => window.removeEventListener("vado:goHome", handleCloseAll);
   }, []);
+
+  useEffect(() => {
+    if (!expanded) setEditMode(false);
+  }, [expanded]);
 
   const title = useMemo(() => {
     const fn = String(data.firstName ?? "").trim();
@@ -327,8 +324,8 @@ export default function CustomerCard({
 
   return (
     <Accordion
-      expanded={expanded}
-      onChange={(_, isExpanded) => setExpanded(isExpanded)}
+      expanded={Boolean(expanded)}
+      onChange={(_, isExpanded) => onExpandedChange?.(isExpanded)}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography sx={{ flexGrow: 1 }}>{title}</Typography>

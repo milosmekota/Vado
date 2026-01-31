@@ -59,54 +59,58 @@ export default function AppShell({ children, initialUser = null }) {
   return (
     <>
       {!hideNavbar && (
-        <AppBar position="static">
-          <Toolbar>
-            <Button
-              color="inherit"
-              onClick={handleGoHome}
-              sx={{
-                textTransform: "none",
-                fontSize: "1.1rem",
-                px: 0,
-                minWidth: "auto",
-              }}
-            >
-              Vado
-            </Button>
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <Tooltip
-              title={
-                mode === "dark"
-                  ? "Přepnout na denní režim"
-                  : "Přepnout na noční režim"
-              }
-            >
-              <IconButton
+        <>
+          <AppBar position="fixed">
+            <Toolbar>
+              <Button
                 color="inherit"
-                onClick={toggleColorMode}
-                aria-label="Přepnout téma"
-                data-testid="theme-toggle"
-                sx={{ mr: 1 }}
+                onClick={handleGoHome}
+                sx={{
+                  textTransform: "none",
+                  fontSize: "1.1rem",
+                  px: 0,
+                  minWidth: "auto",
+                }}
               >
-                {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
-              </IconButton>
-            </Tooltip>
-
-            {user?.email ? (
-              <Typography variant="body1" sx={{ mr: 2 }}>
-                {user.email}
-              </Typography>
-            ) : null}
-
-            {user ? (
-              <Button color="inherit" onClick={handleLogout}>
-                Odhlásit
+                Vado
               </Button>
-            ) : null}
-          </Toolbar>
-        </AppBar>
+
+              <Box sx={{ flexGrow: 1 }} />
+
+              <Tooltip
+                title={
+                  mode === "dark"
+                    ? "Přepnout na denní režim"
+                    : "Přepnout na noční režim"
+                }
+              >
+                <IconButton
+                  color="inherit"
+                  onClick={toggleColorMode}
+                  aria-label="Přepnout téma"
+                  data-testid="theme-toggle"
+                  sx={{ mr: 1 }}
+                >
+                  {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+                </IconButton>
+              </Tooltip>
+
+              {user?.email ? (
+                <Typography variant="body1" sx={{ mr: 2 }}>
+                  {user.email}
+                </Typography>
+              ) : null}
+
+              {user ? (
+                <Button color="inherit" onClick={handleLogout}>
+                  Odhlásit
+                </Button>
+              ) : null}
+            </Toolbar>
+          </AppBar>
+
+          <Toolbar />
+        </>
       )}
 
       {children}
