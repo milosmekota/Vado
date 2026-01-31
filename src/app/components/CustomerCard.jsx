@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -68,14 +68,12 @@ function addMonths(date, months) {
 function getServiceStatus(lastServiceValue) {
   const raw =
     typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
-  if (!raw) {
+  if (!raw)
     return { level: "warning", tooltip: "Poslední servis není vyplněný" };
-  }
 
   const last = new Date(raw);
-  if (Number.isNaN(last.getTime())) {
+  if (Number.isNaN(last.getTime()))
     return { level: "warning", tooltip: "Poslední servis má neplatné datum" };
-  }
 
   const now = new Date();
   const before12 = addMonths(now, -12);
@@ -89,16 +87,14 @@ function getServiceStatus(lastServiceValue) {
 }
 
 function StatusIcon({ level }) {
-  if (level === "success") {
+  if (level === "success")
     return <CheckCircleIcon fontSize="small" sx={{ color: "success.main" }} />;
-  }
-  if (level === "error") {
+  if (level === "error")
     return <ErrorIcon fontSize="small" sx={{ color: "error.main" }} />;
-  }
   return <WarningAmberIcon fontSize="small" sx={{ color: "warning.main" }} />;
 }
 
-export default function CustomerCard({
+function CustomerCardInner({
   customer,
   index,
   onUpdate,
@@ -124,10 +120,7 @@ export default function CustomerCard({
   }, [customer]);
 
   useEffect(() => {
-    const handleCloseAll = () => {
-      setEditMode(false);
-    };
-
+    const handleCloseAll = () => setEditMode(false);
     window.addEventListener("vado:goHome", handleCloseAll);
     return () => window.removeEventListener("vado:goHome", handleCloseAll);
   }, []);
@@ -147,9 +140,10 @@ export default function CustomerCard({
     return "(bez jména)";
   }, [data.firstName, data.lastName, data.serialNumber, data.email]);
 
-  const serviceStatus = useMemo(() => {
-    return getServiceStatus(data?.lastService);
-  }, [data?.lastService]);
+  const serviceStatus = useMemo(
+    () => getServiceStatus(data?.lastService),
+    [data?.lastService]
+  );
 
   const handleChange = (field, value) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -226,7 +220,6 @@ export default function CustomerCard({
 
     const customerId =
       customer?._id?.toString?.() ?? String(customer?._id ?? "").trim();
-
     if (!customerId) {
       alert("Chybí customer id – nelze smazat.");
       return;
@@ -255,14 +248,10 @@ export default function CustomerCard({
 
   const renderViewValue = (meta) => {
     const value = data?.[meta.key];
-
     if (meta.type === "checkbox") return value ? "Ano" : "Ne";
     if (meta.type === "date") return formatCzechDate(value);
-
-    if (meta.key === "installYear") {
+    if (meta.key === "installYear")
       return value == null || value === "" ? "" : String(value);
-    }
-
     return String(value ?? "");
   };
 
@@ -326,6 +315,8 @@ export default function CustomerCard({
     <Accordion
       expanded={Boolean(expanded)}
       onChange={(_, isExpanded) => onExpandedChange?.(isExpanded)}
+      TransitionProps={{ unmountOnExit: true, timeout: 150 }}
+      slotProps={{ transition: { unmountOnExit: true, timeout: 150 } }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography sx={{ flexGrow: 1 }}>{title}</Typography>
@@ -368,13 +359,7 @@ export default function CustomerCard({
                 const displayValue = String(value ?? "").trim() || "—";
 
                 return (
-                  <ListItem
-                    key={meta.key}
-                    disableGutters
-                    sx={{
-                      py: 0.8,
-                    }}
-                  >
+                  <ListItem key={meta.key} disableGutters sx={{ py: 0.8 }}>
                     <ListItemText
                       primary={displayValue}
                       primaryTypographyProps={{
@@ -450,3 +435,16 @@ export default function CustomerCard({
     </Accordion>
   );
 }
+
+const CustomerCard = React.memo(CustomerCardInner, (prev, next) => {
+  const prevId = String(prev.customer?._id ?? "");
+  const nextId = String(next.customer?._id ?? "");
+  if (prevId !== nextId) return false;
+  if (prev.expanded !== next.expanded) return false;
+
+  if (prev.customer !== next.customer) return false;
+
+  return true;
+});
+
+export default CustomerCard;

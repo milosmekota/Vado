@@ -10,7 +10,13 @@ import {
   ToggleButtonGroup,
   Stack,
 } from "@mui/material";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useDeferredValue,
+} from "react";
 import { useRouter } from "next/navigation";
 import CustomerCard from "./CustomerCard";
 
@@ -20,28 +26,8 @@ function normalizeStr(v) {
     .toLowerCase();
 }
 
-function getDisplayNameForSort(customer) {
-  const fn = normalizeStr(customer?.firstName);
-  const ln = normalizeStr(customer?.lastName);
-  const full = `${fn} ${ln}`.trim();
-
-  // prioritně jméno + příjmení
-  if (full) return full;
-
-  // fallback podobně jako title v CustomerCard
-  const sn = normalizeStr(customer?.serialNumber);
-  if (sn) return `sn:${sn}`;
-
-  const email = normalizeStr(customer?.email);
-  if (email) return `email:${email}`;
-
-  return "(bez jmena)";
-}
-
-function matchesQuery(customer, q) {
-  if (!q) return true;
-
-  const hay = [
+function buildSearchIndex(customer) {
+  return [
     customer?.firstName,
     customer?.lastName,
     customer?.email,
@@ -54,48 +40,81 @@ function matchesQuery(customer, q) {
     .map(normalizeStr)
     .filter(Boolean)
     .join(" ");
+}
 
-  return hay.includes(q);
+function withSearchIndex(customer) {
+  if (!customer) return customer;
+  return { ...customer, __q: buildSearchIndex(customer) };
+}
+
+function getDisplayNameForSort(customer) {
+  const fn = normalizeStr(customer?.firstName);
+  const ln = normalizeStr(customer?.lastName);
+  const full = `${fn} ${ln}`.trim();
+
+  if (full) return full;
+
+  const sn = normalizeStr(customer?.serialNumber);
+  if (sn) return `sn:${sn}`;
+
+  const email = normalizeStr(customer?.email);
+  if (email) return `email:${email}`;
+
+  return "(bez jmena)";
 }
 
 export default function MainLayoutClient({ initialUser, initialCustomers }) {
   const router = useRouter();
   const user = initialUser;
 
-  const [customers, setCustomers] = useState(initialCustomers ?? []);
+  const [customers, setCustomers] = useState(() =>
+    Array.isArray(initialCustomers) ? initialCustomers.map(withSearchIndex) : []
+  );
 
-  // ✅ jediný otevřený accordion
   const [expandedId, setExpandedId] = useState(null);
 
-  // ✅ filtr + řazení
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [sortDir, setSortDir] = useState("asc"); // asc | desc
 
   const handleUpdateCustomer = useCallback((index, updatedData) => {
+    if (typeof index !== "number" || index < 0) return;
+
     setCustomers((prev) => {
+      if (!prev[index]) return prev;
       const next = prev.slice();
-      next[index] = updatedData;
+      next[index] = withSearchIndex(updatedData);
       return next;
     });
   }, []);
 
   const handleDeleteCustomer = useCallback((deleteIndex) => {
+    if (typeof deleteIndex !== "number" || deleteIndex < 0) return;
     setCustomers((prev) => prev.filter((_, idx) => idx !== deleteIndex));
   }, []);
 
-  // ✅ klik "Vado" zavře accordion
   useEffect(() => {
     const closeExpanded = () => setExpandedId(null);
     window.addEventListener("vado:goHome", closeExpanded);
     return () => window.removeEventListener("vado:goHome", closeExpanded);
   }, []);
 
+  const idToIndex = useMemo(() => {
+    const m = new Map();
+    for (let i = 0; i < customers.length; i++) {
+      const id = String(customers[i]?._id ?? "");
+      if (id) m.set(id, i);
+    }
+    return m;
+  }, [customers]);
+
   const filteredAndSortedCustomers = useMemo(() => {
-    const q = normalizeStr(query);
+    const q = normalizeStr(deferredQuery);
 
-    const filtered = customers.filter((c) => matchesQuery(c, q));
+    const filtered = !q
+      ? customers
+      : customers.filter((c) => (c?.__q ?? "").includes(q));
 
-    // stabilní řazení: když shodný klíč, dorovnáme podle _id
     const dir = sortDir === "desc" ? -1 : 1;
 
     return filtered.slice().sort((a, b) => {
@@ -111,110 +130,95 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
       if (ida > idb) return 1;
       return 0;
     });
-  }, [customers, query, sortDir]);
+  }, [customers, deferredQuery, sortDir]);
 
   return (
-    <>
-      <Container sx={{ mt: 4 }}>
-        {/* Header: mobil řádek, desktop sloupec */}
-        <Box
+    <Container sx={{ mt: 4 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "row", sm: "column" },
+          alignItems: { xs: "center", sm: "flex-start" },
+          justifyContent: { xs: "space-between", sm: "flex-start" },
+          gap: { xs: 2, sm: 1 },
+          mb: 2,
+        }}
+      >
+        <Typography variant="h5" sx={{ mb: 0, lineHeight: 1.2 }}>
+          Seznam zákazníků
+        </Typography>
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => router.push("/customers/new")}
+          aria-label="Přidat zákazníka"
           sx={{
-            display: "flex",
-            flexDirection: { xs: "row", sm: "column" },
-            alignItems: { xs: "center", sm: "flex-start" },
-            justifyContent: { xs: "space-between", sm: "flex-start" },
-            gap: { xs: 2, sm: 1 },
-            mb: 2,
+            alignSelf: { xs: "auto", sm: "flex-start" },
+            minWidth: { xs: 44, sm: "auto" },
+            px: { xs: 1.5, sm: 2 },
+            flexShrink: 0,
           }}
         >
-          <Typography variant="h5" sx={{ mb: 0, lineHeight: 1.2 }}>
-            Seznam zákazníků
-          </Typography>
+          <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+            +
+          </Box>
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            Přidat zákazníka
+          </Box>
+        </Button>
+      </Box>
 
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => router.push("/customers/new")}
-            aria-label="Přidat zákazníka"
-            sx={{
-              alignSelf: { xs: "auto", sm: "flex-start" },
-              minWidth: { xs: 44, sm: "auto" },
-              px: { xs: 1.5, sm: 2 },
-              flexShrink: 0,
-            }}
-          >
-            <Box
-              component="span"
-              sx={{ display: { xs: "inline", sm: "none" } }}
-            >
-              +
-            </Box>
-            <Box
-              component="span"
-              sx={{ display: { xs: "none", sm: "inline" } }}
-            >
-              Přidat zákazníka
-            </Box>
-          </Button>
-        </Box>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Filtrovat (jméno, email, SN, adresa...)"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
 
-        {/* Filtr + řazení */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{ mb: 2 }}
+        <ToggleButtonGroup
+          value={sortDir}
+          exclusive
+          onChange={(_, v) => {
+            if (v === "asc" || v === "desc") setSortDir(v);
+          }}
+          aria-label="Řazení podle jména"
+          sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
         >
-          <TextField
-            fullWidth
-            label="Filtrovat (jméno, email, SN, adresa...)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <ToggleButton value="asc" aria-label="A až Z">
+            A→Z
+          </ToggleButton>
+          <ToggleButton value="desc" aria-label="Z až A">
+            Z→A
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
-          <ToggleButtonGroup
-            value={sortDir}
-            exclusive
-            onChange={(_, v) => {
-              if (v === "asc" || v === "desc") setSortDir(v);
+      {filteredAndSortedCustomers.map((c) => {
+        const id = c?._id?.toString?.() ?? String(c?._id ?? "");
+        const isExpanded = expandedId === id;
+
+        const realIndex = idToIndex.get(id) ?? -1;
+
+        return (
+          <CustomerCard
+            key={id}
+            customer={c}
+            index={realIndex}
+            user={user}
+            onUpdate={handleUpdateCustomer}
+            onDelete={() => {
+              const idx = idToIndex.get(id);
+              if (typeof idx === "number") handleDeleteCustomer(idx);
             }}
-            aria-label="Řazení podle jména"
-            sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
-          >
-            <ToggleButton value="asc" aria-label="A až Z">
-              A→Z
-            </ToggleButton>
-            <ToggleButton value="desc" aria-label="Z až A">
-              Z→A
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Stack>
-
-        {filteredAndSortedCustomers.map((c) => {
-          const id = c?._id?.toString?.() ?? String(c?._id ?? "");
-          const isExpanded = expandedId === id;
-
-          return (
-            <CustomerCard
-              key={id}
-              customer={c}
-              index={customers.findIndex((x) => String(x?._id ?? "") === id)}
-              user={user}
-              onUpdate={handleUpdateCustomer}
-              onDelete={() => {
-                // najdeme index v původním array (protože teď renderujeme seřazené)
-                const realIndex = customers.findIndex(
-                  (x) => String(x?._id ?? "") === id
-                );
-                if (realIndex >= 0) handleDeleteCustomer(realIndex);
-              }}
-              expanded={isExpanded}
-              onExpandedChange={(nextExpanded) => {
-                setExpandedId(nextExpanded ? id : null);
-              }}
-            />
-          );
-        })}
-      </Container>
-    </>
+            expanded={isExpanded}
+            onExpandedChange={(nextExpanded) => {
+              setExpandedId(nextExpanded ? id : null);
+            }}
+          />
+        );
+      })}
+    </Container>
   );
 }
