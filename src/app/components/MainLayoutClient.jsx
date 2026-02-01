@@ -150,19 +150,16 @@ export default function MainLayoutClient({
   const filteredAndSortedCustomers = useMemo(() => {
     const q = normalizeStr(deferredQuery);
 
-    // 1) text filter
     let list = !q
       ? customers
       : customers.filter((c) => (c?.__q ?? "").includes(q));
 
-    // 2) service filter
     if (serviceFilter !== "all") {
       list = list.filter(
         (c) => getServiceBucket(c?.lastService) === serviceFilter,
       );
     }
 
-    // 3) sort
     const dir = sortDir === "desc" ? -1 : 1;
 
     return list.slice().sort((a, b) => {

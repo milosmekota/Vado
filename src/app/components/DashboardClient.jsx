@@ -30,7 +30,6 @@ function addMonths(date, months) {
   return d;
 }
 
-// bucket: ok | dueSoon | overdue | missing
 function getServiceBucket(lastServiceValue) {
   const raw =
     typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
@@ -173,7 +172,6 @@ export default function DashboardClient() {
         Dashboard
       </Typography>
 
-      {/* Moduly (nejdřív) */}
       <Typography variant="h6" sx={{ mb: 1 }}>
         Moduly
       </Typography>
@@ -216,7 +214,6 @@ export default function DashboardClient() {
         </Grid>
       </Grid>
 
-      {/* Statistiky (až potom) */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
           Statistiky servisů
