@@ -52,6 +52,11 @@ function isOwner(currentUser, comment) {
   return Boolean(me) && Boolean(author) && me === author;
 }
 
+function canManageComment(currentUser, comment) {
+  if (currentUser?.role === "admin") return true;
+  return isOwner(currentUser, comment);
+}
+
 async function ensureCommentIds(customerId) {
   const customer = await Customer.findById(customerId);
   if (!customer) return null;
@@ -116,7 +121,7 @@ export async function PATCH(req, { params }) {
 
     const comment = customer.comments[idx];
 
-    if (!isOwner(user, comment)) {
+    if (!canManageComment(user, comment)) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
@@ -183,7 +188,7 @@ export async function DELETE(req, { params }) {
 
     const comment = customer.comments[idx];
 
-    if (!isOwner(user, comment)) {
+    if (!canManageComment(user, comment)) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
