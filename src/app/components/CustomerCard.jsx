@@ -16,11 +16,16 @@ import {
   Checkbox,
   Box,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorIcon from "@mui/icons-material/Error";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 
 const formatCzechDate = (isoDate) => {
   if (!isoDate) return "";
@@ -94,6 +99,12 @@ function StatusIcon({ level }) {
   return <WarningAmberIcon fontSize="small" sx={{ color: "warning.main" }} />;
 }
 
+function normalizeEmail(v) {
+  return String(v ?? "")
+    .trim()
+    .toLowerCase();
+}
+
 function CustomerCardInner({
   customer,
   index,
@@ -112,6 +123,9 @@ function CustomerCardInner({
 
   const [newComment, setNewComment] = useState("");
 
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+
   useEffect(() => {
     setData({
       ...customer,
@@ -126,7 +140,11 @@ function CustomerCardInner({
   }, []);
 
   useEffect(() => {
-    if (!expanded) setEditMode(false);
+    if (!expanded) {
+      setEditMode(false);
+      setEditingCommentId(null);
+      setEditingText("");
+    }
   }, [expanded]);
 
   const title = useMemo(() => {
@@ -142,7 +160,7 @@ function CustomerCardInner({
 
   const serviceStatus = useMemo(
     () => getServiceStatus(data?.lastService),
-    [data?.lastService]
+    [data?.lastService],
   );
 
   const handleChange = (field, value) => {
@@ -202,9 +220,13 @@ function CustomerCardInner({
         body: JSON.stringify({ text: newComment }),
       });
 
-      if (!res.ok) throw new Error("Failed to save comment");
+      const body = await res.json().catch(() => ({}));
 
-      const { customer: updatedCustomer } = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.message || "Failed to save comment");
+      }
+
+      const updatedCustomer = body.customer;
       setData(updatedCustomer);
       onUpdate(index, updatedCustomer);
       setNewComment("");
@@ -214,7 +236,92 @@ function CustomerCardInner({
     }
   };
 
-  const handleDelete = async () => {
+  const startEditComment = (comment) => {
+    const cid = String(comment?.id ?? "").trim();
+    if (!cid) return;
+    setEditingCommentId(cid);
+    setEditingText(String(comment?.text ?? ""));
+  };
+
+  const cancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingText("");
+  };
+
+  const saveEditComment = async () => {
+    const cid = String(editingCommentId ?? "").trim();
+    const text = String(editingText ?? "").trim();
+    if (!cid || !text) return;
+
+    try {
+      const res = await fetch(
+        `/api/customers/${customer._id}/comments/${encodeURIComponent(cid)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ text }),
+        },
+      );
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          alert("Tenhle komentář nemůžeš upravit (není tvůj).");
+          return;
+        }
+        throw new Error(body?.message || "Failed to update comment");
+      }
+
+      const updatedCustomer = body.customer;
+      setData(updatedCustomer);
+      onUpdate(index, updatedCustomer);
+      cancelEditComment();
+    } catch (err) {
+      console.error(err);
+      alert("Nepodařilo se upravit komentář");
+    }
+  };
+
+  const deleteComment = async (comment) => {
+    const cid = String(comment?.id ?? "").trim();
+    if (!cid) return;
+
+    const ok = window.confirm("Opravdu chceš smazat tento komentář?");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(
+        `/api/customers/${customer._id}/comments/${encodeURIComponent(cid)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          alert("Tenhle komentář nemůžeš smazat (není tvůj).");
+          return;
+        }
+        throw new Error(body?.message || "Failed to delete comment");
+      }
+
+      const updatedCustomer = body.customer;
+      setData(updatedCustomer);
+      onUpdate(index, updatedCustomer);
+
+      if (editingCommentId === cid) cancelEditComment();
+    } catch (err) {
+      console.error(err);
+      alert("Nepodařilo se smazat komentář");
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
     const ok = window.confirm(`Opravdu chceš smazat zákazníka "${title}"?`);
     if (!ok) return;
 
@@ -231,7 +338,7 @@ function CustomerCardInner({
         {
           method: "DELETE",
           credentials: "include",
-        }
+        },
       );
 
       if (!res.ok) {
@@ -274,7 +381,7 @@ function CustomerCardInner({
 
     if (meta.type === "date") {
       const dateValue =
-        typeof value === "string" ? value.split("T")[0] ?? "" : "";
+        typeof value === "string" ? (value.split("T")[0] ?? "") : "";
       return (
         <TextField
           fullWidth
@@ -311,6 +418,8 @@ function CustomerCardInner({
     );
   };
 
+  const myEmail = normalizeEmail(user?.email);
+
   return (
     <Accordion
       expanded={Boolean(expanded)}
@@ -346,7 +455,11 @@ function CustomerCardInner({
               <Button variant="outlined" onClick={() => setEditMode(false)}>
                 Zrušit
               </Button>
-              <Button variant="outlined" color="error" onClick={handleDelete}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDeleteCustomer}
+              >
                 Smazat
               </Button>
             </Stack>
@@ -398,7 +511,11 @@ function CustomerCardInner({
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
               />
-              <Button variant="contained" onClick={handleAddComment}>
+              <Button
+                variant="contained"
+                onClick={handleAddComment}
+                disabled={Boolean(editingCommentId)}
+              >
                 Přidat
               </Button>
             </Stack>
@@ -409,24 +526,109 @@ function CustomerCardInner({
               </Typography>
             ) : (
               <List>
-                {data.comments.map((c, i) => (
-                  <ListItem
-                    key={i}
-                    sx={{
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      border: "1px solid #ddd",
-                      borderRadius: 2,
-                      mb: 1,
-                      p: 1,
-                    }}
-                  >
-                    <Typography>{c.text}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {c.user} — {formatCzechDateTime(c.date)}
-                    </Typography>
-                  </ListItem>
-                ))}
+                {data.comments.map((c) => {
+                  const cid = String(c?.id ?? "").trim();
+                  const isMine = normalizeEmail(c?.user) === myEmail;
+                  const isEditing = cid && editingCommentId === cid;
+
+                  return (
+                    <ListItem
+                      key={cid || `${c.user}-${c.date}`}
+                      sx={{
+                        position: "relative",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        border: "1px solid #ddd",
+                        borderRadius: 2,
+                        mb: 1,
+                        p: 1.25,
+                        width: "100%",
+                        pr: isMine ? 6 : 1.25, // rezervuj místo pro ikonky vpravo nahoře
+                      }}
+                    >
+                      {isMine && cid ? (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 4,
+                            right: 4,
+                            display: "flex",
+                            gap: 0.25,
+                          }}
+                        >
+                          {isEditing ? (
+                            <>
+                              <Tooltip title="Uložit" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={saveEditComment}
+                                  aria-label="Uložit komentář"
+                                >
+                                  <SaveIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Zrušit" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={cancelEditComment}
+                                  aria-label="Zrušit úpravu"
+                                >
+                                  <CloseIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          ) : (
+                            <>
+                              <Tooltip title="Upravit" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => startEditComment(c)}
+                                  aria-label="Upravit komentář"
+                                  disabled={Boolean(editingCommentId)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Smazat" arrow>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => deleteComment(c)}
+                                  aria-label="Smazat komentář"
+                                  disabled={Boolean(editingCommentId)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </Box>
+                      ) : null}
+
+                      {isEditing ? (
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          label="Upravit komentář"
+                          value={editingText}
+                          onChange={(e) => setEditingText(e.target.value)}
+                        />
+                      ) : (
+                        <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                          {c.text}
+                        </Typography>
+                      )}
+
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5 }}
+                      >
+                        {c.user} — {formatCzechDateTime(c.date)}
+                      </Typography>
+                    </ListItem>
+                  );
+                })}
               </List>
             )}
           </>
@@ -441,9 +643,7 @@ const CustomerCard = React.memo(CustomerCardInner, (prev, next) => {
   const nextId = String(next.customer?._id ?? "");
   if (prevId !== nextId) return false;
   if (prev.expanded !== next.expanded) return false;
-
   if (prev.customer !== next.customer) return false;
-
   return true;
 });
 

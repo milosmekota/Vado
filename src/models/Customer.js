@@ -4,11 +4,12 @@ const MODEL_NAME = "Customer";
 
 const CommentSchema = new mongoose.Schema(
   {
+    id: { type: String, required: true, trim: true },
     text: { type: String, required: true, trim: true },
     user: { type: String, required: true, trim: true },
     date: { type: String, required: true, trim: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const CustomerSchema = new mongoose.Schema(
@@ -39,7 +40,7 @@ const CustomerSchema = new mongoose.Schema(
 
     comments: { type: [CommentSchema], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 if (process.env.NODE_ENV !== "production") {
