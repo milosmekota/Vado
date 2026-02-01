@@ -39,7 +39,7 @@ export default function NewCustomerPage() {
   };
 
   const handleCancel = () => {
-    router.push("/");
+    router.push("/customers");
   };
 
   const handleSave = async () => {
@@ -70,7 +70,7 @@ export default function NewCustomerPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/customers");
     } catch (err) {
       console.error(err);
       setError("Server nedostupný");
