@@ -9,6 +9,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Stack,
+  Divider,
 } from "@mui/material";
 import {
   useState,
@@ -63,19 +64,57 @@ function getDisplayNameForSort(customer) {
   return "(bez jmena)";
 }
 
-export default function MainLayoutClient({ initialUser, initialCustomers }) {
+function addMonths(date, months) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function getServiceBucket(lastServiceValue) {
+  const raw =
+    typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
+
+  if (!raw) return "missing";
+
+  const last = new Date(raw);
+  if (Number.isNaN(last.getTime())) return "missing";
+
+  const now = new Date();
+  const before12 = addMonths(now, -12);
+  const before24 = addMonths(now, -24);
+
+  if (last >= before12) return "ok";
+  if (last >= before24) return "dueSoon";
+  return "overdue";
+}
+
+export default function MainLayoutClient({
+  initialUser,
+  initialCustomers,
+  initialServiceFilter = "all",
+}) {
   const router = useRouter();
   const user = initialUser;
 
   const [customers, setCustomers] = useState(() =>
-    Array.isArray(initialCustomers) ? initialCustomers.map(withSearchIndex) : []
+    Array.isArray(initialCustomers)
+      ? initialCustomers.map(withSearchIndex)
+      : [],
   );
 
   const [expandedId, setExpandedId] = useState(null);
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
+
   const [sortDir, setSortDir] = useState("asc"); // asc | desc
+
+  const [serviceFilter, setServiceFilter] = useState(() => {
+    const v = String(initialServiceFilter ?? "all").trim();
+    return v === "ok" || v === "dueSoon" || v === "overdue" || v === "missing"
+      ? v
+      : "all";
+  });
 
   const handleUpdateCustomer = useCallback((index, updatedData) => {
     if (typeof index !== "number" || index < 0) return;
@@ -111,13 +150,22 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
   const filteredAndSortedCustomers = useMemo(() => {
     const q = normalizeStr(deferredQuery);
 
-    const filtered = !q
+    // 1) text filter
+    let list = !q
       ? customers
       : customers.filter((c) => (c?.__q ?? "").includes(q));
 
+    // 2) service filter
+    if (serviceFilter !== "all") {
+      list = list.filter(
+        (c) => getServiceBucket(c?.lastService) === serviceFilter,
+      );
+    }
+
+    // 3) sort
     const dir = sortDir === "desc" ? -1 : 1;
 
-    return filtered.slice().sort((a, b) => {
+    return list.slice().sort((a, b) => {
       const ka = getDisplayNameForSort(a);
       const kb = getDisplayNameForSort(b);
 
@@ -130,7 +178,27 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
       if (ida > idb) return 1;
       return 0;
     });
-  }, [customers, deferredQuery, sortDir]);
+  }, [customers, deferredQuery, sortDir, serviceFilter]);
+
+  const handleServiceFilterChange = (_, v) => {
+    if (!v) return;
+
+    if (
+      v === "all" ||
+      v === "ok" ||
+      v === "dueSoon" ||
+      v === "overdue" ||
+      v === "missing"
+    ) {
+      setServiceFilter(v);
+
+      if (v === "all") {
+        router.replace("/customers");
+      } else {
+        router.replace(`/customers?service=${encodeURIComponent(v)}`);
+      }
+    }
+  };
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -191,6 +259,42 @@ export default function MainLayoutClient({ initialUser, initialCustomers }) {
           </ToggleButton>
           <ToggleButton value="desc" aria-label="Z až A">
             Z→A
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
+
+      <Divider sx={{ mb: 2 }} />
+
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+        >
+          Filtr servisů:
+        </Typography>
+
+        <ToggleButtonGroup
+          value={serviceFilter}
+          exclusive
+          onChange={handleServiceFilterChange}
+          aria-label="Filtr servisů"
+          sx={{ flexWrap: "wrap" }}
+        >
+          <ToggleButton value="all" aria-label="Vše">
+            Vše
+          </ToggleButton>
+          <ToggleButton value="overdue" aria-label="Po termínu">
+            🔴 Po termínu
+          </ToggleButton>
+          <ToggleButton value="dueSoon" aria-label="Blížící se">
+            🟡 Blížící se
+          </ToggleButton>
+          <ToggleButton value="ok" aria-label="OK">
+            🟢 OK
+          </ToggleButton>
+          <ToggleButton value="missing" aria-label="Bez servisu">
+            ❓ Bez servisu
           </ToggleButton>
         </ToggleButtonGroup>
       </Stack>
