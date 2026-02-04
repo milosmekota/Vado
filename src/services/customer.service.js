@@ -316,57 +316,6 @@ export async function addPlannedServiceEvent({
   return recomputeAndPersistNextService(cid);
 }
 
-export async function updateServiceEventStatus({
-  customerId,
-  eventId,
-  status,
-}) {
-  await connectDB();
-
-  const cid = toObjectId(customerId);
-  if (!cid) {
-    const err = new Error("Invalid customer id");
-    err.status = 400;
-    throw err;
-  }
-
-  const eid = String(eventId ?? "").trim();
-  if (!eid) {
-    const err = new Error("Invalid event id");
-    err.status = 400;
-    throw err;
-  }
-
-  const nextStatus = String(status ?? "").trim();
-  if (!["planned", "done", "canceled"].includes(nextStatus)) {
-    const err = new Error("Invalid status");
-    err.status = 400;
-    throw err;
-  }
-
-  const doc = await Customer.findById(cid);
-  if (!doc) {
-    const err = new Error("Customer not found");
-    err.status = 404;
-    throw err;
-  }
-
-  const events = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
-  const idx = events.findIndex((e) => String(e?.id ?? "") === eid);
-  if (idx === -1) {
-    const err = new Error("Event not found");
-    err.status = 404;
-    throw err;
-  }
-
-  events[idx].status = nextStatus;
-  doc.serviceEvents = events;
-  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-
-  await doc.save();
-  return recomputeAndPersistNextService(cid);
-}
-
 export async function deleteServiceEvent({ customerId, eventId }) {
   await connectDB();
 

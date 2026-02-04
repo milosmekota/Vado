@@ -73,7 +73,6 @@ function getCustomerIdFromEvent(ev) {
   const b = String(ev?.customerId ?? "").trim();
   if (b) return b;
 
-  // fallback kdyby backend někdy posílal customer: { id: ... }
   const c = ev?.customer?.id?.toString?.();
   if (c) return c;
 
@@ -177,7 +176,6 @@ export default function CalendarClient() {
 
   useEffect(() => {
     loadEvents(filterCustomerId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterCustomerId]);
 
   const customersById = useMemo(() => {
@@ -296,7 +294,6 @@ export default function CalendarClient() {
         throw new Error(data?.message || "Nepodařilo se smazat event");
       }
     } catch (e) {
-      // rollback
       setEvents(prevEvents);
       setErrorEvents(e?.message || "Chyba při mazání eventu");
     } finally {

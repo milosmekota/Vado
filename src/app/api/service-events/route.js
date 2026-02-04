@@ -126,7 +126,6 @@ export async function DELETE(req) {
       );
     }
 
-    // ✅ ZMĚNA: kdokoliv může mazat eventy komukoliv (stačí být přihlášený)
     const cust = await Customer.findById(customerId).select("_id").lean();
     if (!cust) {
       return NextResponse.json(
