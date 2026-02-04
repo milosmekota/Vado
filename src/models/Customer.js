@@ -12,6 +12,34 @@ const CommentSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const ServiceEventSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
+
+    type: {
+      type: String,
+      enum: ["service"],
+      default: "service",
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["planned", "done", "canceled"],
+      default: "planned",
+      required: true,
+    },
+
+    date: { type: String, required: true, trim: true },
+
+    title: { type: String, trim: true, default: "Servis" },
+    note: { type: String, trim: true, default: "" },
+
+    source: { type: String, trim: true, default: "manual" },
+  },
+  { _id: false },
+);
+
 const CustomerSchema = new mongoose.Schema(
   {
     userId: {
@@ -37,6 +65,10 @@ const CustomerSchema = new mongoose.Schema(
     online: { type: Boolean, default: false },
 
     lastService: { type: String, trim: true, default: "" },
+
+    nextService: { type: String, trim: true, default: "" },
+
+    serviceEvents: { type: [ServiceEventSchema], default: [] },
 
     comments: { type: [CommentSchema], default: [] },
   },

@@ -62,6 +62,8 @@ const FIELD_META = [
   { key: "installYear", label: "Rok instalace", type: "number" },
   { key: "online", label: "Online", type: "checkbox" },
   { key: "lastService", label: "Poslední servis", type: "date" },
+
+  { key: "nextService", label: "Další servis", type: "date" },
 ];
 
 function addMonths(date, months) {
@@ -184,6 +186,8 @@ function CustomerCardInner({
             : Number(data.installYear),
         online: Boolean(data.online),
         lastService: data.lastService ?? "",
+
+        nextService: data.nextService ?? "",
       };
 
       const res = await fetch(`/api/customers/${customer._id}`, {

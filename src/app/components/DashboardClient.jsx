@@ -189,7 +189,7 @@ export default function DashboardClient() {
         <Grid item xs={12} sm={6}>
           <DashCard
             title="Kalendář"
-            subtitle="Plán servisů (doděláme později)"
+            subtitle="Plán servisů"
             icon={<CalendarMonthIcon />}
             onClick={() => router.push("/calendar")}
           />
@@ -198,7 +198,7 @@ export default function DashboardClient() {
         <Grid item xs={12} sm={6}>
           <DashCard
             title="AI asistent"
-            subtitle="Dotazy nad databází a návrhy akcí (doděláme později)"
+            subtitle="Dotazy nad databází a návrhy akcí"
             icon={<SmartToyIcon />}
             onClick={() => router.push("/ai")}
           />

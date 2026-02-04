@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
+import { upsertPlannedServiceEventFromCustomerField } from "@/services/customer.service";
 
 function toObjectId(value) {
   try {
@@ -42,6 +43,7 @@ function pickAllowedCustomerFields(body) {
     online: typeof body?.online === "boolean" ? body.online : undefined,
 
     lastService: body?.lastService,
+    nextService: body?.nextService,
   };
 
   Object.keys(allowed).forEach((k) => {
@@ -58,12 +60,11 @@ function pickAllowedCustomerFields(body) {
     "serialNumber",
     "type",
     "lastService",
+    "nextService",
   ];
 
   for (const k of stringKeys) {
-    if (typeof allowed[k] === "string") {
-      allowed[k] = allowed[k].trim();
-    }
+    if (typeof allowed[k] === "string") allowed[k] = allowed[k].trim();
   }
 
   if (typeof allowed.email === "string") {
@@ -76,6 +77,14 @@ function pickAllowedCustomerFields(body) {
 async function getParamId(params) {
   const p = await params;
   return p?.id;
+}
+
+function buildCustomerFilter({ user, customerId }) {
+  if (user?.role === "admin") return { _id: customerId };
+
+  const userId = toObjectId(user?.id);
+  if (!userId) return null;
+  return { _id: customerId, userId };
 }
 
 export async function GET(req, { params }) {
@@ -92,18 +101,23 @@ export async function GET(req, { params }) {
     if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const customer = await Customer.findById(customerId)
+    const filter = buildCustomerFilter({ user, customerId });
+    if (!filter) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
+    }
+
+    const customer = await Customer.findOne(filter)
       .select("-userId -__v")
       .lean();
 
     if (!customer) {
       return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 }
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
       );
     }
 
@@ -112,7 +126,7 @@ export async function GET(req, { params }) {
     console.error(err);
     return NextResponse.json(
       { message: "Failed to load customer" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,32 +145,22 @@ export async function PUT(req, { params }) {
     if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const body = await req.json();
-    const allowed = pickAllowedCustomerFields(body);
-
-    const filter =
-      user.role === "admin"
-        ? { _id: customerId }
-        : { _id: customerId, userId: toObjectId(user.id) };
-
-    if (user.role !== "admin") {
-      const userId = toObjectId(user.id);
-      if (!userId) {
-        return NextResponse.json(
-          { message: "Invalid user id" },
-          { status: 400 }
-        );
-      }
+    const filter = buildCustomerFilter({ user, customerId });
+    if (!filter) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
     }
+
+    const body = await req.json().catch(() => ({}));
+    const allowed = pickAllowedCustomerFields(body);
 
     const updatedCustomer = await Customer.findOneAndUpdate(
       filter,
       { $set: allowed },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .select("-userId -__v -createdAt -updatedAt")
       .lean();
@@ -164,8 +168,17 @@ export async function PUT(req, { params }) {
     if (!updatedCustomer) {
       return NextResponse.json(
         { message: "Customer not found or forbidden" },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    if (Object.prototype.hasOwnProperty.call(allowed, "nextService")) {
+      const finalCustomer = await upsertPlannedServiceEventFromCustomerField(
+        updatedCustomer._id?.toString?.() ?? String(updatedCustomer._id ?? ""),
+        allowed.nextService ?? "",
+      );
+
+      return NextResponse.json({ customer: finalCustomer }, { status: 200 });
     }
 
     return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
@@ -173,7 +186,7 @@ export async function PUT(req, { params }) {
     console.error(err);
     return NextResponse.json(
       { message: "Failed to update customer" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -192,23 +205,13 @@ export async function DELETE(req, { params }) {
     if (!customerId) {
       return NextResponse.json(
         { message: "Invalid customer id" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const filter =
-      user.role === "admin"
-        ? { _id: customerId }
-        : { _id: customerId, userId: toObjectId(user.id) };
-
-    if (user.role !== "admin") {
-      const userId = toObjectId(user.id);
-      if (!userId) {
-        return NextResponse.json(
-          { message: "Invalid user id" },
-          { status: 400 }
-        );
-      }
+    const filter = buildCustomerFilter({ user, customerId });
+    if (!filter) {
+      return NextResponse.json({ message: "Invalid user id" }, { status: 400 });
     }
 
     const deleted = await Customer.findOneAndDelete(filter)
@@ -218,19 +221,19 @@ export async function DELETE(req, { params }) {
     if (!deleted) {
       return NextResponse.json(
         { message: "Customer not found or forbidden" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { ok: true, id: deleted._id.toString() },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error(err);
     return NextResponse.json(
       { message: "Failed to delete customer" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

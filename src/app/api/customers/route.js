@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getAllCustomers, createCustomer } from "@/services/customer.service";
+import {
+  getAllCustomers,
+  getCustomersByUser,
+  createCustomer,
+} from "@/services/customer.service";
 
 function toIntOrNull(value) {
   const n = Number(value);
@@ -15,13 +19,17 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const customers = await getAllCustomers();
+    const customers =
+      user.role === "admin"
+        ? await getAllCustomers()
+        : await getCustomersByUser(user.id);
+
     return NextResponse.json({ customers }, { status: 200 });
   } catch (err) {
     console.error(err);
     return NextResponse.json(
       { message: "Failed to load customers" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -58,17 +66,17 @@ export async function POST(req) {
 
       lastService:
         typeof body?.lastService === "string" ? body.lastService : "",
+
+      nextService: "",
+      serviceEvents: [],
     };
 
-    if (typeof allowed.email === "string") {
+    if (typeof allowed.email === "string")
       allowed.email = allowed.email.trim().toLowerCase();
-    }
-    if (typeof allowed.firstName === "string") {
+    if (typeof allowed.firstName === "string")
       allowed.firstName = allowed.firstName.trim();
-    }
-    if (typeof allowed.lastName === "string") {
+    if (typeof allowed.lastName === "string")
       allowed.lastName = allowed.lastName.trim();
-    }
 
     const customer = await createCustomer(user.id, allowed);
     return NextResponse.json({ customer }, { status: 201 });
@@ -76,7 +84,7 @@ export async function POST(req) {
     console.error(err);
     return NextResponse.json(
       { message: "Failed to create customer" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

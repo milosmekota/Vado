@@ -1,15 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import PlaceholderClient from "@/app/components/PlaceholderClient";
+import CalendarClient from "@/app/components/CalendarClient";
 
 export default async function CalendarPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  return (
-    <PlaceholderClient
-      title="Kalendář"
-      subtitle="Tady později bude kalendář servisů a plánování."
-    />
-  );
+  return <CalendarClient initialUser={user} />;
 }

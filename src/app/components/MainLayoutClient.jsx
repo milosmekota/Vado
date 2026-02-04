@@ -107,7 +107,7 @@ export default function MainLayoutClient({
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
 
-  const [sortDir, setSortDir] = useState("asc"); // asc | desc
+  const [sortDir, setSortDir] = useState("asc");
 
   const [serviceFilter, setServiceFilter] = useState(() => {
     const v = String(initialServiceFilter ?? "all").trim();

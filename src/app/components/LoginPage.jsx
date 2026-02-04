@@ -45,7 +45,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Cookie je nastavená serverem (httpOnly) -> přejdi na home
       router.replace("/");
       router.refresh();
     } catch {
@@ -101,8 +100,8 @@ export default function LoginPage() {
             {submitting
               ? "Odesílám..."
               : isRegister
-              ? "Registrovat"
-              : "Přihlásit"}
+                ? "Registrovat"
+                : "Přihlásit"}
           </Button>
 
           {REGISTRATION_ENABLED && (
