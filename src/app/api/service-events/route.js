@@ -7,6 +7,7 @@ import {
   listServiceEventsForUser,
   addPlannedServiceEvent,
   deleteServiceEvent,
+  updateServiceEventDate,
 } from "@/services/customer.service";
 
 function toObjectIdOrNull(value) {
@@ -44,8 +45,9 @@ export async function GET(req) {
       source: e.source,
       date: e.date,
 
-      start: dateOnlyToStartIso(e.date),
+      start: e.date,
       end: null,
+      allDay: true,
 
       customerId: e?.customer?.id ?? "",
       customerName: e?.customer?.name ?? "",
@@ -54,7 +56,6 @@ export async function GET(req) {
 
       customer: e.customer,
     }));
-
     return NextResponse.json({ events: calendarEvents }, { status: 200 });
   } catch (err) {
     console.error(err);
@@ -145,6 +146,57 @@ export async function DELETE(req) {
     const status = err?.status || 500;
     return NextResponse.json(
       { message: err?.message || "Failed to delete service event" },
+      { status },
+    );
+  }
+}
+export async function PATCH(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const body = await req.json().catch(() => ({}));
+
+    const customerId = String(body?.customerId ?? "").trim();
+    const eventId = String(body?.eventId ?? "").trim();
+
+    const dateRaw = String(body?.date ?? body?.start ?? "").trim();
+    const date = dateRaw.includes("T") ? dateRaw.slice(0, 10) : dateRaw;
+
+    if (!customerId) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    }
+    if (!eventId) {
+      return NextResponse.json(
+        { message: "Invalid event id" },
+        { status: 400 },
+      );
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json(
+        { message: "Invalid date (expected YYYY-MM-DD)" },
+        { status: 400 },
+      );
+    }
+
+    const updatedCustomer = await updateServiceEventDate({
+      customerId,
+      eventId,
+      date,
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to update service event" },
       { status },
     );
   }

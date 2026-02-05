@@ -348,3 +348,49 @@ export async function deleteServiceEvent({ customerId, eventId }) {
   await doc.save();
   return recomputeAndPersistNextService(cid);
 }
+
+export async function updateServiceEventDate({ customerId, eventId, date }) {
+  await connectDB();
+
+  const cid = toObjectId(customerId);
+  if (!cid) {
+    const err = new Error("Invalid customer id");
+    err.status = 400;
+    throw err;
+  }
+
+  const eid = String(eventId ?? "").trim();
+  if (!eid) {
+    const err = new Error("Invalid event id");
+    err.status = 400;
+    throw err;
+  }
+
+  const d = typeof date === "string" ? date.trim() : "";
+  if (!isValidDateOnly(d)) {
+    const err = new Error("Invalid date (expected YYYY-MM-DD)");
+    err.status = 400;
+    throw err;
+  }
+
+  const doc = await Customer.findById(cid);
+  if (!doc) {
+    const err = new Error("Customer not found");
+    err.status = 404;
+    throw err;
+  }
+
+  const ev = (doc.serviceEvents || []).find((e) => String(e?.id ?? "") === eid);
+  if (!ev) {
+    const err = new Error("Event not found");
+    err.status = 404;
+    throw err;
+  }
+
+  ev.date = d;
+
+  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+  await doc.save();
+
+  return recomputeAndPersistNextService(cid);
+}

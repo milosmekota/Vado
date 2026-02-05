@@ -2,43 +2,34 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
   Stack,
   TextField,
-  Typography,
-  Paper,
-  Divider,
-  Alert,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-function formatCzechDateTime(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Prague",
-  }).format(d);
-}
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
+import interactionPlugin from "@fullcalendar/interaction";
 
 function customerLabel(c) {
   const fn = String(c?.firstName ?? "").trim();
@@ -53,32 +44,24 @@ function customerLabel(c) {
 function getEventId(ev) {
   const a = ev?.id?.toString?.();
   if (a) return a;
-
   const b = String(ev?.id ?? "").trim();
   if (b) return b;
-
   const c = ev?._id?.toString?.();
   if (c) return c;
-
   const d = String(ev?._id ?? "").trim();
   if (d) return d;
-
   return "";
 }
 
 function getCustomerIdFromEvent(ev) {
   const a = ev?.customerId?.toString?.();
   if (a) return a;
-
   const b = String(ev?.customerId ?? "").trim();
   if (b) return b;
-
   const c = ev?.customer?.id?.toString?.();
   if (c) return c;
-
   const d = String(ev?.customer?.id ?? "").trim();
   if (d) return d;
-
   return "";
 }
 
@@ -98,13 +81,13 @@ export default function CalendarClient() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [deletingIds, setDeletingIds] = useState(() => new Set());
 
   const [form, setForm] = useState({
     customerId: "",
     title: "Servis",
-    start: "",
-    end: "",
+    date: "",
     notes: "",
   });
 
@@ -188,14 +171,41 @@ export default function CalendarClient() {
     return m;
   }, [customers]);
 
-  const openCreate = () => {
+  const fcEvents = useMemo(() => {
+    return events
+      .map((ev) => {
+        const id = getEventId(ev);
+        const customerId = getCustomerIdFromEvent(ev);
+        const title = String(ev?.title ?? "Servis").trim() || "Servis";
+        const start = String(ev?.date ?? ev?.start ?? "").trim(); // YYYY-MM-DD z API
+
+        if (!id || !start) return null;
+
+        return {
+          id,
+          title,
+          start,
+          allDay: true,
+          extendedProps: {
+            customerId,
+            customerName: String(ev?.customerName ?? "").trim(),
+            note: String(ev?.note ?? ev?.notes ?? "").trim(),
+            status: ev?.status,
+            type: ev?.type,
+            source: ev?.source,
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [events]);
+
+  const openCreate = (prefill = {}) => {
     setCreateError("");
     setForm((prev) => ({
-      ...prev,
-      customerId: filterCustomerId || prev.customerId || "",
-      start: "",
-      end: "",
+      customerId:
+        prefill.customerId ?? filterCustomerId ?? prev.customerId ?? "",
       title: prev.title || "Servis",
+      date: prefill.date ?? "",
       notes: prev.notes || "",
     }));
     setCreateOpen(true);
@@ -212,23 +222,14 @@ export default function CalendarClient() {
     const payload = {
       customerId: String(form.customerId ?? "").trim(),
       title: String(form.title ?? "").trim(),
-      start: String(form.start ?? "").trim(),
-      end: String(form.end ?? "").trim(),
+      date: String(form.date ?? "").trim(), // YYYY-MM-DD
       notes: String(form.notes ?? "").trim(),
     };
 
-    if (!payload.customerId) {
-      setCreateError("Vyber zákazníka.");
-      return;
-    }
-    if (!payload.title) {
-      setCreateError("Vyplň název.");
-      return;
-    }
-    if (!payload.start) {
-      setCreateError("Vyplň datum a čas začátku.");
-      return;
-    }
+    if (!payload.customerId) return setCreateError("Vyber zákazníka.");
+    if (!payload.title) return setCreateError("Vyplň název.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.date))
+      return setCreateError("Vyplň datum (YYYY-MM-DD).");
 
     setCreating(true);
     try {
@@ -252,11 +253,11 @@ export default function CalendarClient() {
     }
   };
 
-  const handleDelete = async (ev) => {
+  const handleDeleteByRawEvent = async (rawEvent) => {
     setErrorEvents("");
 
-    const eventId = getEventId(ev);
-    const customerId = getCustomerIdFromEvent(ev);
+    const eventId = getEventId(rawEvent);
+    const customerId = getCustomerIdFromEvent(rawEvent);
 
     if (!eventId || !customerId) {
       setErrorEvents("Chybí customerId nebo eventId – nelze smazat.");
@@ -264,11 +265,10 @@ export default function CalendarClient() {
     }
 
     const ok = window.confirm(
-      `Smazat "${ev?.title ?? "Servis"}" (${formatCzechDateTime(ev?.start)})?`,
+      `Smazat "${rawEvent?.title ?? "Servis"}" (${rawEvent?.date ?? rawEvent?.start ?? ""})?`,
     );
     if (!ok) return;
 
-    // optimistic remove
     const prevEvents = events;
 
     setDeletingIds((prev) => {
@@ -305,8 +305,39 @@ export default function CalendarClient() {
     }
   };
 
+  const handleEventDrop = async (info) => {
+    const eventId = String(info?.event?.id ?? "").trim();
+    const customerId = String(
+      info?.event?.extendedProps?.customerId ?? "",
+    ).trim();
+    const date = String(info?.event?.startStr ?? "").slice(0, 10); // YYYY-MM-DD
+
+    if (!eventId || !customerId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      info.revert();
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/service-events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ customerId, eventId, date }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.message || "Nepodařilo se přesunout event");
+
+      await loadEvents(filterCustomerId);
+    } catch (e) {
+      setErrorEvents(e?.message || "Chyba při přesunu eventu");
+      info.revert();
+    }
+  };
+
   return (
-    <Container sx={{ mt: 4, maxWidth: 900 }}>
+    <Container sx={{ mt: 4, maxWidth: 1100 }}>
       <Box
         sx={{
           display: "flex",
@@ -316,13 +347,13 @@ export default function CalendarClient() {
         }}
       >
         <Typography variant="h5">Kalendář servisů</Typography>
-        <Button variant="contained" onClick={openCreate}>
+        <Button variant="contained" onClick={() => openCreate()}>
           Přidat servis
         </Button>
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        Eventy jsou uložené v databázi a můžeš je filtrovat podle zákazníka.
+        Klikni do dne pro vytvoření. Event můžeš přetáhnout na jiný den.
       </Typography>
 
       <Divider sx={{ my: 2 }} />
@@ -384,10 +415,6 @@ export default function CalendarClient() {
       </Paper>
 
       <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Seznam eventů
-        </Typography>
-
         {loadingEvents ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={18} />
@@ -396,67 +423,44 @@ export default function CalendarClient() {
             </Typography>
           </Box>
         ) : errorEvents ? (
-          <Alert severity="warning">{errorEvents}</Alert>
-        ) : events.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            Zatím žádné eventy.
-          </Typography>
-        ) : (
-          <List>
-            {events.map((ev) => {
-              const eventId = getEventId(ev);
-              const cid = getCustomerIdFromEvent(ev);
-              const c = cid ? customersById.get(cid) : null;
-              const deleting = Boolean(eventId && deletingIds.has(eventId));
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {errorEvents}
+          </Alert>
+        ) : null}
 
-              return (
-                <ListItem
-                  key={eventId || `${cid}-${String(ev?.start ?? "")}`}
-                  divider
-                  secondaryAction={
-                    <Tooltip title="Smazat">
-                      <span>
-                        <IconButton
-                          edge="end"
-                          size="small"
-                          onClick={() => handleDelete(ev)}
-                          disabled={deleting}
-                          aria-label="Smazat event"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  }
-                >
-                  <ListItemText
-                    primary={`${ev?.title ?? "Servis"} — ${formatCzechDateTime(ev?.start)}`}
-                    secondary={
-                      <>
-                        <span>
-                          Zákazník:{" "}
-                          {c ? customerLabel(c) : cid ? `(${cid})` : "—"}
-                        </span>
-                        {ev?.notes ? (
-                          <span>
-                            {" · "}
-                            {String(ev.notes)}
-                          </span>
-                        ) : null}
-                        {deleting ? (
-                          <span>
-                            {" · "}
-                            <em>Mažu…</em>
-                          </span>
-                        ) : null}
-                      </>
-                    }
-                  />
-                </ListItem>
-              );
-            })}
-          </List>
-        )}
+        <FullCalendar
+          eventDisplay="block"
+          eventBorderColor="transparent"
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            listPlugin,
+            interactionPlugin,
+          ]}
+          initialView="dayGridMonth"
+          height="auto"
+          timeZone="Europe/Prague"
+          locale="cs"
+          firstDay={1}
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+          }}
+          weekends
+          editable
+          selectable
+          selectMirror
+          dayMaxEvents
+          events={fcEvents}
+          dateClick={(arg) => {
+            openCreate({ date: arg.dateStr });
+          }}
+          eventClick={(arg) => {
+            setSelectedEvent(arg.event);
+          }}
+          eventDrop={handleEventDrop}
+        />
       </Paper>
 
       <Dialog open={createOpen} onClose={closeCreate} fullWidth maxWidth="sm">
@@ -503,21 +507,10 @@ export default function CalendarClient() {
 
             <TextField
               fullWidth
-              label="Začátek"
-              type="datetime-local"
-              value={form.start}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, start: e.target.value }))
-              }
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              label="Konec (volitelné)"
-              type="datetime-local"
-              value={form.end}
-              onChange={(e) => setForm((p) => ({ ...p, end: e.target.value }))}
+              label="Datum"
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
               InputLabelProps={{ shrink: true }}
             />
 
@@ -547,6 +540,76 @@ export default function CalendarClient() {
           >
             {creating ? "Ukládám…" : "Vytvořit"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selectedEvent)}
+        onClose={() => setSelectedEvent(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Detail eventu</DialogTitle>
+        <DialogContent>
+          {selectedEvent ? (
+            <Stack spacing={1.25} sx={{ mt: 1 }}>
+              <Typography variant="subtitle1">
+                {selectedEvent.title || "Servis"}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                Datum: {String(selectedEvent.startStr ?? "").slice(0, 10)}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                Zákazník:{" "}
+                {selectedEvent.extendedProps?.customerId
+                  ? customersById.get(
+                      String(selectedEvent.extendedProps.customerId),
+                    )?.firstName
+                    ? customerLabel(
+                        customersById.get(
+                          String(selectedEvent.extendedProps.customerId),
+                        ),
+                      )
+                    : selectedEvent.extendedProps?.customerName ||
+                      `(${selectedEvent.extendedProps.customerId})`
+                  : "—"}
+              </Typography>
+
+              {selectedEvent.extendedProps?.note ? (
+                <Typography variant="body2">
+                  Poznámka: {String(selectedEvent.extendedProps.note)}
+                </Typography>
+              ) : null}
+            </Stack>
+          ) : null}
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "space-between" }}>
+          <Box>
+            <Tooltip title="Smazat">
+              <span>
+                <IconButton
+                  color="error"
+                  onClick={() => {
+                    const raw = {
+                      id: selectedEvent?.id,
+                      title: selectedEvent?.title,
+                      date: String(selectedEvent?.startStr ?? "").slice(0, 10),
+                      customerId: selectedEvent?.extendedProps?.customerId,
+                    };
+                    setSelectedEvent(null);
+                    handleDeleteByRawEvent(raw);
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+
+          <Button onClick={() => setSelectedEvent(null)}>Zavřít</Button>
         </DialogActions>
       </Dialog>
     </Container>

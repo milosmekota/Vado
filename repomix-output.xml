@@ -45,11 +45,6 @@ eslint.config.mjs
 jsconfig.json
 next.config.mjs
 package.json
-public/file.svg
-public/globe.svg
-public/next.svg
-public/vercel.svg
-public/window.svg
 README.md
 src/app/ai/page.jsx
 src/app/api/ai/chat/route.js
@@ -79,12 +74,10 @@ src/app/login/page.jsx
 src/app/page.js
 src/app/settings/page.jsx
 src/app/ThemeRegistry.jsx
-src/context/AuthContext.jsx
 src/lib/auth.js
 src/lib/mongodb.js
 src/lib/openai.js
 src/models/Customer.js
-src/models/ServiceEvent.js
 src/models/User.js
 src/services/customer.service.js
 </directory_structure>
@@ -179,26 +172,6 @@ export default eslintConfig;
 const nextConfig = {};
 
 export default nextConfig;
-</file>
-
-<file path="public/file.svg">
-<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
-</file>
-
-<file path="public/globe.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
-</file>
-
-<file path="public/next.svg">
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
-</file>
-
-<file path="public/vercel.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
-</file>
-
-<file path="public/window.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
 </file>
 
 <file path="README.md">
@@ -504,160 +477,6 @@ Odpovídej česky, stručně, v odrážkách, s jasnou prioritou. Nepoužívej a
 }
 </file>
 
-<file path="src/app/api/service-events/route.js">
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import { getCurrentUser } from "@/lib/auth";
-import { connectDB } from "@/lib/mongodb";
-import Customer from "@/models/Customer";
-import {
-  listServiceEventsForUser,
-  addPlannedServiceEvent,
-  deleteServiceEvent,
-} from "@/services/customer.service";
-
-function toObjectIdOrNull(value) {
-  const str = String(value ?? "").trim();
-  if (!str) return null;
-  if (!mongoose.Types.ObjectId.isValid(str)) return null;
-  return new mongoose.Types.ObjectId(str);
-}
-
-function dateOnlyToStartIso(dateOnly) {
-  const str = String(dateOnly ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
-  const d = new Date(`${str}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-}
-
-export async function GET(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const isAdmin = user.role === "admin";
-    const events = await listServiceEventsForUser(user.id, isAdmin);
-
-    const calendarEvents = events.map((e) => ({
-      id: e.id,
-      type: e.type,
-      status: e.status,
-      title: e.title,
-      note: e.note,
-      source: e.source,
-      date: e.date,
-
-      start: dateOnlyToStartIso(e.date),
-      end: null,
-
-      customerId: e?.customer?.id ?? "",
-      customerName: e?.customer?.name ?? "",
-      customerPhone: e?.customer?.phone ?? "",
-      customerAddress: e?.customer?.address ?? "",
-
-      customer: e.customer,
-    }));
-
-    return NextResponse.json({ events: calendarEvents }, { status: 200 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { message: "Failed to load service events" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const body = await req.json().catch(() => ({}));
-
-    const customerId = String(body?.customerId ?? "").trim();
-    const date = String(body?.date ?? body?.start ?? "").trim();
-    const title = String(body?.title ?? "Servis").trim();
-    const note = typeof body?.note === "string" ? body.note : body?.notes;
-    const noteNorm = typeof note === "string" ? note.trim() : "";
-
-    const updatedCustomer = await addPlannedServiceEvent({
-      customerId,
-      date: date.includes("T") ? date.slice(0, 10) : date,
-      title,
-      note: noteNorm,
-      source: "calendar",
-    });
-
-    return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    const status = err?.status || 500;
-    return NextResponse.json(
-      { message: err?.message || "Failed to create service event" },
-      { status },
-    );
-  }
-}
-
-export async function DELETE(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const url = new URL(req.url);
-    const customerIdRaw = url.searchParams.get("customerId");
-    const eventId = String(url.searchParams.get("eventId") ?? "").trim();
-
-    const customerId = toObjectIdOrNull(customerIdRaw);
-    if (!customerId) {
-      return NextResponse.json(
-        { message: "Invalid customer id" },
-        { status: 400 },
-      );
-    }
-    if (!eventId) {
-      return NextResponse.json(
-        { message: "Invalid event id" },
-        { status: 400 },
-      );
-    }
-
-    const cust = await Customer.findById(customerId).select("_id").lean();
-    if (!cust) {
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 },
-      );
-    }
-
-    const updatedCustomer = await deleteServiceEvent({
-      customerId: customerId.toString(),
-      eventId,
-    });
-
-    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
-  } catch (err) {
-    console.error(err);
-    const status = err?.status || 500;
-    return NextResponse.json(
-      { message: err?.message || "Failed to delete service event" },
-      { status },
-    );
-  }
-}
-</file>
-
 <file path="src/app/components/AiChatClient.jsx">
 "use client";
 
@@ -822,6 +641,516 @@ export default function AiChatClient() {
       </Stack>
     </Box>
   );
+}
+</file>
+
+<file path="src/app/components/PlaceholderClient.jsx">
+"use client";
+
+import { Container, Paper, Typography } from "@mui/material";
+
+export default function PlaceholderClient({ title, subtitle }) {
+  return (
+    <Container sx={{ mt: 4 }}>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          {title}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {subtitle}
+        </Typography>
+      </Paper>
+    </Container>
+  );
+}
+</file>
+
+<file path="src/app/settings/page.jsx">
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import PlaceholderClient from "@/app/components/PlaceholderClient";
+
+export default async function SettingsPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  return (
+    <PlaceholderClient
+      title="Nastavení"
+      subtitle="Rezervní stránka (role, preference, další moduly)."
+    />
+  );
+}
+</file>
+
+<file path="src/lib/openai.js">
+import OpenAI from "openai";
+
+export const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+</file>
+
+<file path="src/models/User.js">
+import mongoose from "mongoose";
+
+const UserSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+  },
+  { timestamps: true }
+);
+
+export default mongoose.models.User || mongoose.model("User", UserSchema);
+</file>
+
+<file path="src/app/ai/page.jsx">
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import AiChatClient from "@/app/components/AiChatClient";
+
+export default async function AiPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  return <AiChatClient />;
+}
+</file>
+
+<file path="src/app/api/auth/logout/route.js">
+import { NextResponse } from "next/server";
+
+export async function POST() {
+  const res = NextResponse.json({ message: "Logged out" });
+
+  res.cookies.set("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  });
+
+  return res;
+}
+</file>
+
+<file path="src/app/api/auth/me/route.js">
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json({ user: null }, { status: 401 });
+    }
+
+    return NextResponse.json({ user }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ user: null }, { status: 500 });
+  }
+}
+</file>
+
+<file path="src/app/api/customers/[id]/comments/[commentId]/route.js">
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import crypto from "crypto";
+import { connectDB } from "@/lib/mongodb";
+import Customer from "@/models/Customer";
+import { getCurrentUser } from "@/lib/auth";
+
+function toObjectId(value) {
+  try {
+    const str = String(value ?? "").trim();
+    if (!str) return null;
+    if (!mongoose.Types.ObjectId.isValid(str)) return null;
+    return new mongoose.Types.ObjectId(str);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCustomer(doc) {
+  if (!doc) return null;
+
+  const plain = doc.toObject ? doc.toObject() : doc;
+
+  return {
+    ...plain,
+    _id: plain._id?.toString?.() ?? String(plain._id ?? ""),
+    comments: Array.isArray(plain.comments)
+      ? plain.comments.map((c) => ({
+          id: c.id ?? "",
+          text: c.text ?? "",
+          user: c.user ?? "",
+          date:
+            typeof c.date === "string"
+              ? c.date
+              : c.date
+                ? new Date(c.date).toISOString()
+                : "",
+        }))
+      : [],
+  };
+}
+
+function normalizeEmail(v) {
+  return String(v ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function isOwner(currentUser, comment) {
+  const me = normalizeEmail(currentUser?.email);
+  const author = normalizeEmail(comment?.user);
+  return Boolean(me) && Boolean(author) && me === author;
+}
+
+function canManageComment(currentUser, comment) {
+  if (currentUser?.role === "admin") return true;
+  return isOwner(currentUser, comment);
+}
+
+async function ensureCommentIds(customerId) {
+  const customer = await Customer.findById(customerId);
+  if (!customer) return null;
+
+  let changed = false;
+  if (Array.isArray(customer.comments)) {
+    for (const c of customer.comments) {
+      if (!c?.id) {
+        c.id = crypto.randomUUID();
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) await customer.save();
+  return customer;
+}
+
+export async function PATCH(req, { params }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const p = await params;
+    const customerId = toObjectId(p?.id);
+    const commentId = String(p?.commentId ?? "").trim();
+
+    if (!customerId)
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    if (!commentId)
+      return NextResponse.json(
+        { message: "Invalid comment id" },
+        { status: 400 },
+      );
+
+    const body = await req.json().catch(() => ({}));
+    const text = typeof body?.text === "string" ? body.text.trim() : "";
+    if (!text)
+      return NextResponse.json({ message: "Text je povinný" }, { status: 400 });
+
+    const customer = await ensureCommentIds(customerId);
+    if (!customer)
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+
+    const idx = customer.comments.findIndex(
+      (c) => String(c?.id ?? "") === commentId,
+    );
+    if (idx === -1)
+      return NextResponse.json(
+        { message: "Comment not found" },
+        { status: 404 },
+      );
+
+    const comment = customer.comments[idx];
+
+    if (!canManageComment(user, comment)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    comment.text = text;
+    comment.date = new Date().toISOString();
+
+    await customer.save();
+
+    const updatedCustomer = await Customer.findById(customerId)
+      .select("-userId -__v -createdAt -updatedAt")
+      .lean();
+
+    return NextResponse.json(
+      { customer: normalizeCustomer(updatedCustomer) },
+      { status: 200 },
+    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to update comment" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const p = await params;
+    const customerId = toObjectId(p?.id);
+    const commentId = String(p?.commentId ?? "").trim();
+
+    if (!customerId)
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    if (!commentId)
+      return NextResponse.json(
+        { message: "Invalid comment id" },
+        { status: 400 },
+      );
+
+    const customer = await ensureCommentIds(customerId);
+    if (!customer)
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+
+    const idx = customer.comments.findIndex(
+      (c) => String(c?.id ?? "") === commentId,
+    );
+    if (idx === -1)
+      return NextResponse.json(
+        { message: "Comment not found" },
+        { status: 404 },
+      );
+
+    const comment = customer.comments[idx];
+
+    if (!canManageComment(user, comment)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    customer.comments.splice(idx, 1);
+    await customer.save();
+
+    const updatedCustomer = await Customer.findById(customerId)
+      .select("-userId -__v -createdAt -updatedAt")
+      .lean();
+
+    return NextResponse.json(
+      { customer: normalizeCustomer(updatedCustomer) },
+      { status: 200 },
+    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to delete comment" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/service-events/route.js">
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { getCurrentUser } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import Customer from "@/models/Customer";
+import {
+  listServiceEventsForUser,
+  addPlannedServiceEvent,
+  deleteServiceEvent,
+} from "@/services/customer.service";
+
+function toObjectIdOrNull(value) {
+  const str = String(value ?? "").trim();
+  if (!str) return null;
+  if (!mongoose.Types.ObjectId.isValid(str)) return null;
+  return new mongoose.Types.ObjectId(str);
+}
+
+function dateOnlyToStartIso(dateOnly) {
+  const str = String(dateOnly ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+  const d = new Date(`${str}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+export async function GET(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const isAdmin = user.role === "admin";
+    const events = await listServiceEventsForUser(user.id, isAdmin);
+
+    const calendarEvents = events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      status: e.status,
+      title: e.title,
+      note: e.note,
+      source: e.source,
+      date: e.date,
+
+      start: dateOnlyToStartIso(e.date),
+      end: null,
+
+      customerId: e?.customer?.id ?? "",
+      customerName: e?.customer?.name ?? "",
+      customerPhone: e?.customer?.phone ?? "",
+      customerAddress: e?.customer?.address ?? "",
+
+      customer: e.customer,
+    }));
+
+    return NextResponse.json({ events: calendarEvents }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to load service events" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const body = await req.json().catch(() => ({}));
+
+    const customerId = String(body?.customerId ?? "").trim();
+    const date = String(body?.date ?? body?.start ?? "").trim();
+    const title = String(body?.title ?? "Servis").trim();
+    const note = typeof body?.note === "string" ? body.note : body?.notes;
+    const noteNorm = typeof note === "string" ? note.trim() : "";
+
+    const updatedCustomer = await addPlannedServiceEvent({
+      customerId,
+      date: date.includes("T") ? date.slice(0, 10) : date,
+      title,
+      note: noteNorm,
+      source: "calendar",
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to create service event" },
+      { status },
+    );
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const url = new URL(req.url);
+    const customerIdRaw = url.searchParams.get("customerId");
+    const eventId = String(url.searchParams.get("eventId") ?? "").trim();
+
+    const customerId = toObjectIdOrNull(customerIdRaw);
+    if (!customerId) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    }
+    if (!eventId) {
+      return NextResponse.json(
+        { message: "Invalid event id" },
+        { status: 400 },
+      );
+    }
+
+    const cust = await Customer.findById(customerId).select("_id").lean();
+    if (!cust) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+    }
+
+    const updatedCustomer = await deleteServiceEvent({
+      customerId: customerId.toString(),
+      eventId,
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to delete service event" },
+      { status },
+    );
+  }
+}
+</file>
+
+<file path="src/app/calendar/page.jsx">
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import CalendarClient from "@/app/components/CalendarClient";
+
+export default async function CalendarPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  return <CalendarClient initialUser={user} />;
 }
 </file>
 
@@ -1379,444 +1708,6 @@ export default function CalendarClient() {
       </Dialog>
     </Container>
   );
-}
-</file>
-
-<file path="src/app/components/PlaceholderClient.jsx">
-"use client";
-
-import { Container, Paper, Typography } from "@mui/material";
-
-export default function PlaceholderClient({ title, subtitle }) {
-  return (
-    <Container sx={{ mt: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          {title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {subtitle}
-        </Typography>
-      </Paper>
-    </Container>
-  );
-}
-</file>
-
-<file path="src/app/settings/page.jsx">
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import PlaceholderClient from "@/app/components/PlaceholderClient";
-
-export default async function SettingsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  return (
-    <PlaceholderClient
-      title="Nastavení"
-      subtitle="Rezervní stránka (role, preference, další moduly)."
-    />
-  );
-}
-</file>
-
-<file path="src/context/AuthContext.jsx">
-"use client";
-import { createContext, useContext, useEffect, useState } from "react";
-
-const AuthContext = createContext(null);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const login = (userData) => {
-    setUser(userData);
-  };
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user || null);
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUser();
-  }, []);
-
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
-</file>
-
-<file path="src/lib/openai.js">
-import OpenAI from "openai";
-
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-</file>
-
-<file path="src/models/ServiceEvent.js">
-import mongoose from "mongoose";
-
-const { Schema } = mongoose;
-
-const ServiceEventSchema = new Schema(
-  {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    customerId: {
-      type: Schema.Types.ObjectId,
-      ref: "Customer",
-      required: true,
-      index: true,
-    },
-
-    title: { type: String, required: true, trim: true },
-    start: { type: Date, required: true, index: true },
-    end: { type: Date, default: null },
-    notes: { type: String, default: "", trim: true },
-  },
-  { timestamps: true },
-);
-
-export default mongoose.models.ServiceEvent ||
-  mongoose.model("ServiceEvent", ServiceEventSchema);
-</file>
-
-<file path="src/models/User.js">
-import mongoose from "mongoose";
-
-const UserSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-  },
-  { timestamps: true }
-);
-
-export default mongoose.models.User || mongoose.model("User", UserSchema);
-</file>
-
-<file path="src/app/ai/page.jsx">
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import AiChatClient from "@/app/components/AiChatClient";
-
-export default async function AiPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  return <AiChatClient />;
-}
-</file>
-
-<file path="src/app/api/auth/logout/route.js">
-import { NextResponse } from "next/server";
-
-export async function POST() {
-  const res = NextResponse.json({ message: "Logged out" });
-
-  res.cookies.set("token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-    expires: new Date(0),
-  });
-
-  return res;
-}
-</file>
-
-<file path="src/app/api/auth/me/route.js">
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-
-export async function GET() {
-  try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return NextResponse.json({ user: null }, { status: 401 });
-    }
-
-    return NextResponse.json({ user }, { status: 200 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ user: null }, { status: 500 });
-  }
-}
-</file>
-
-<file path="src/app/api/customers/[id]/comments/[commentId]/route.js">
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import crypto from "crypto";
-import { connectDB } from "@/lib/mongodb";
-import Customer from "@/models/Customer";
-import { getCurrentUser } from "@/lib/auth";
-
-function toObjectId(value) {
-  try {
-    const str = String(value ?? "").trim();
-    if (!str) return null;
-    if (!mongoose.Types.ObjectId.isValid(str)) return null;
-    return new mongoose.Types.ObjectId(str);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeCustomer(doc) {
-  if (!doc) return null;
-
-  const plain = doc.toObject ? doc.toObject() : doc;
-
-  return {
-    ...plain,
-    _id: plain._id?.toString?.() ?? String(plain._id ?? ""),
-    comments: Array.isArray(plain.comments)
-      ? plain.comments.map((c) => ({
-          id: c.id ?? "",
-          text: c.text ?? "",
-          user: c.user ?? "",
-          date:
-            typeof c.date === "string"
-              ? c.date
-              : c.date
-                ? new Date(c.date).toISOString()
-                : "",
-        }))
-      : [],
-  };
-}
-
-function normalizeEmail(v) {
-  return String(v ?? "")
-    .trim()
-    .toLowerCase();
-}
-
-function isOwner(currentUser, comment) {
-  const me = normalizeEmail(currentUser?.email);
-  const author = normalizeEmail(comment?.user);
-  return Boolean(me) && Boolean(author) && me === author;
-}
-
-function canManageComment(currentUser, comment) {
-  if (currentUser?.role === "admin") return true;
-  return isOwner(currentUser, comment);
-}
-
-async function ensureCommentIds(customerId) {
-  const customer = await Customer.findById(customerId);
-  if (!customer) return null;
-
-  let changed = false;
-  if (Array.isArray(customer.comments)) {
-    for (const c of customer.comments) {
-      if (!c?.id) {
-        c.id = crypto.randomUUID();
-        changed = true;
-      }
-    }
-  }
-
-  if (changed) await customer.save();
-  return customer;
-}
-
-export async function PATCH(req, { params }) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const p = await params;
-    const customerId = toObjectId(p?.id);
-    const commentId = String(p?.commentId ?? "").trim();
-
-    if (!customerId)
-      return NextResponse.json(
-        { message: "Invalid customer id" },
-        { status: 400 },
-      );
-    if (!commentId)
-      return NextResponse.json(
-        { message: "Invalid comment id" },
-        { status: 400 },
-      );
-
-    const body = await req.json().catch(() => ({}));
-    const text = typeof body?.text === "string" ? body.text.trim() : "";
-    if (!text)
-      return NextResponse.json({ message: "Text je povinný" }, { status: 400 });
-
-    const customer = await ensureCommentIds(customerId);
-    if (!customer)
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 },
-      );
-
-    const idx = customer.comments.findIndex(
-      (c) => String(c?.id ?? "") === commentId,
-    );
-    if (idx === -1)
-      return NextResponse.json(
-        { message: "Comment not found" },
-        { status: 404 },
-      );
-
-    const comment = customer.comments[idx];
-
-    if (!canManageComment(user, comment)) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    comment.text = text;
-    comment.date = new Date().toISOString();
-
-    await customer.save();
-
-    const updatedCustomer = await Customer.findById(customerId)
-      .select("-userId -__v -createdAt -updatedAt")
-      .lean();
-
-    return NextResponse.json(
-      { customer: normalizeCustomer(updatedCustomer) },
-      { status: 200 },
-    );
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { message: "Failed to update comment" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function DELETE(req, { params }) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const p = await params;
-    const customerId = toObjectId(p?.id);
-    const commentId = String(p?.commentId ?? "").trim();
-
-    if (!customerId)
-      return NextResponse.json(
-        { message: "Invalid customer id" },
-        { status: 400 },
-      );
-    if (!commentId)
-      return NextResponse.json(
-        { message: "Invalid comment id" },
-        { status: 400 },
-      );
-
-    const customer = await ensureCommentIds(customerId);
-    if (!customer)
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 },
-      );
-
-    const idx = customer.comments.findIndex(
-      (c) => String(c?.id ?? "") === commentId,
-    );
-    if (idx === -1)
-      return NextResponse.json(
-        { message: "Comment not found" },
-        { status: 404 },
-      );
-
-    const comment = customer.comments[idx];
-
-    if (!canManageComment(user, comment)) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
-    }
-
-    customer.comments.splice(idx, 1);
-    await customer.save();
-
-    const updatedCustomer = await Customer.findById(customerId)
-      .select("-userId -__v -createdAt -updatedAt")
-      .lean();
-
-    return NextResponse.json(
-      { customer: normalizeCustomer(updatedCustomer) },
-      { status: 200 },
-    );
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { message: "Failed to delete comment" },
-      { status: 500 },
-    );
-  }
-}
-</file>
-
-<file path="src/app/calendar/page.jsx">
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import CalendarClient from "@/app/components/CalendarClient";
-
-export default async function CalendarPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  return <CalendarClient initialUser={user} />;
 }
 </file>
 
@@ -3204,410 +3095,6 @@ export default mongoose.models[MODEL_NAME] ||
   mongoose.model(MODEL_NAME, CustomerSchema);
 </file>
 
-<file path="src/services/customer.service.js">
-import mongoose from "mongoose";
-import crypto from "crypto";
-import Customer from "@/models/Customer";
-import { connectDB } from "@/lib/mongodb";
-
-function toObjectId(id) {
-  if (!mongoose.Types.ObjectId.isValid(id)) return null;
-  return new mongoose.Types.ObjectId(id);
-}
-
-function isValidDateOnly(value) {
-  if (typeof value !== "string") return false;
-  const v = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const d = new Date(`${v}T00:00:00.000Z`);
-  return !Number.isNaN(d.getTime());
-}
-
-function normalizeCustomer(doc) {
-  if (!doc) return null;
-
-  const plain = doc.toObject ? doc.toObject() : doc;
-
-  return {
-    ...plain,
-    _id: plain._id?.toString?.() ?? String(plain._id ?? ""),
-    comments: Array.isArray(plain.comments)
-      ? plain.comments.map((c) => ({
-          id: c.id ?? "",
-          text: c.text ?? "",
-          user: c.user ?? "",
-          date:
-            typeof c.date === "string"
-              ? c.date
-              : c.date
-                ? new Date(c.date).toISOString()
-                : "",
-        }))
-      : [],
-    serviceEvents: Array.isArray(plain.serviceEvents)
-      ? plain.serviceEvents.map((e) => ({
-          id: e.id ?? "",
-          type: e.type ?? "service",
-          status: e.status ?? "planned",
-          date: e.date ?? "",
-          title: e.title ?? "Servis",
-          note: e.note ?? "",
-          source: e.source ?? "manual",
-        }))
-      : [],
-  };
-}
-
-async function ensureCommentIdsForCustomers(customerDocs) {
-  let changedAny = false;
-
-  for (const cust of customerDocs) {
-    let changed = false;
-
-    if (Array.isArray(cust.comments)) {
-      for (const c of cust.comments) {
-        if (!c?.id) {
-          c.id = crypto.randomUUID();
-          changed = true;
-        }
-      }
-    }
-
-    if (changed) {
-      changedAny = true;
-      await cust.save();
-    }
-  }
-
-  return changedAny;
-}
-
-function computeNextServiceFromEvents(serviceEvents) {
-  const planned = (Array.isArray(serviceEvents) ? serviceEvents : [])
-    .filter(
-      (e) =>
-        e?.type === "service" &&
-        e?.status === "planned" &&
-        isValidDateOnly(e?.date),
-    )
-    .map((e) => e.date)
-    .sort();
-  return planned[0] ?? "";
-}
-
-async function recomputeAndPersistNextService(customerId) {
-  const doc = await Customer.findById(customerId);
-  if (!doc) return null;
-
-  const next = computeNextServiceFromEvents(doc.serviceEvents);
-  doc.nextService = next;
-  await doc.save();
-
-  const lean = await Customer.findById(customerId)
-    .select("-userId -__v -createdAt -updatedAt")
-    .lean();
-  return normalizeCustomer(lean);
-}
-
-export async function getAllCustomers() {
-  await connectDB();
-
-  const docs = await Customer.find({}).select(
-    "-userId -__v -createdAt -updatedAt",
-  );
-  await ensureCommentIdsForCustomers(docs);
-
-  const plain = docs.map((d) => (d.toObject ? d.toObject() : d));
-  return plain.map(normalizeCustomer);
-}
-
-export async function getCustomersByUser(userId) {
-  await connectDB();
-
-  const oid = toObjectId(userId);
-  if (!oid) return [];
-
-  const docs = await Customer.find({ userId: oid }).select(
-    "-userId -__v -createdAt -updatedAt",
-  );
-  await ensureCommentIdsForCustomers(docs);
-
-  const plain = docs.map((d) => (d.toObject ? d.toObject() : d));
-  return plain.map(normalizeCustomer);
-}
-
-export async function createCustomer(userId, data) {
-  await connectDB();
-
-  const oid = toObjectId(userId);
-  if (!oid) {
-    const err = new Error("Invalid user id");
-    err.status = 400;
-    throw err;
-  }
-
-  const created = await Customer.create({
-    ...data,
-    userId: oid,
-    serviceEvents: Array.isArray(data?.serviceEvents) ? data.serviceEvents : [],
-  });
-
-  created.nextService = computeNextServiceFromEvents(created.serviceEvents);
-  await created.save();
-
-  const plain = created.toObject ? created.toObject() : created;
-  return normalizeCustomer(plain);
-}
-
-export async function upsertPlannedServiceEventFromCustomerField(
-  customerId,
-  dateValue,
-) {
-  await connectDB();
-
-  const cid = toObjectId(customerId);
-  if (!cid) {
-    const err = new Error("Invalid customer id");
-    err.status = 400;
-    throw err;
-  }
-
-  const doc = await Customer.findById(cid);
-  if (!doc) {
-    const err = new Error("Customer not found");
-    err.status = 404;
-    throw err;
-  }
-
-  const date = typeof dateValue === "string" ? dateValue.trim() : "";
-  if (!date) {
-    doc.serviceEvents = (doc.serviceEvents || []).filter(
-      (e) => e?.source !== "customer-field",
-    );
-    doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-    await doc.save();
-
-    const lean = await Customer.findById(cid)
-      .select("-userId -__v -createdAt -updatedAt")
-      .lean();
-    return normalizeCustomer(lean);
-  }
-
-  if (!isValidDateOnly(date)) {
-    const err = new Error("Invalid date (expected YYYY-MM-DD)");
-    err.status = 400;
-    throw err;
-  }
-
-  const events = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
-  const idx = events.findIndex(
-    (e) => e?.type === "service" && e?.source === "customer-field",
-  );
-
-  if (idx === -1) {
-    events.push({
-      id: crypto.randomUUID(),
-      type: "service",
-      status: "planned",
-      date,
-      title: "Servis",
-      note: "",
-      source: "customer-field",
-    });
-  } else {
-    events[idx].date = date;
-    events[idx].status = "planned";
-    events[idx].type = "service";
-  }
-
-  doc.serviceEvents = events;
-  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-  await doc.save();
-
-  const lean = await Customer.findById(cid)
-    .select("-userId -__v -createdAt -updatedAt")
-    .lean();
-  return normalizeCustomer(lean);
-}
-
-export async function listServiceEventsForUser(userId, isAdmin = false) {
-  await connectDB();
-
-  const filter = isAdmin ? {} : { userId: toObjectId(userId) };
-  if (!isAdmin && !filter.userId) return [];
-
-  const docs = await Customer.find(filter)
-    .select(
-      "firstName lastName email phone address manufacturer serialNumber type nextService serviceEvents",
-    )
-    .lean();
-
-  const out = [];
-  for (const c of docs) {
-    const customerId = c?._id?.toString?.() ?? String(c?._id ?? "");
-    const customerName =
-      `${c?.firstName ?? ""} ${c?.lastName ?? ""}`.trim() || "(bez jména)";
-
-    const events = Array.isArray(c?.serviceEvents) ? c.serviceEvents : [];
-    for (const e of events) {
-      out.push({
-        id: e?.id ?? "",
-        type: e?.type ?? "service",
-        status: e?.status ?? "planned",
-        date: e?.date ?? "",
-        title: e?.title ?? "Servis",
-        note: e?.note ?? "",
-        source: e?.source ?? "manual",
-        customer: {
-          id: customerId,
-          name: customerName,
-          phone: c?.phone ?? "",
-          address: c?.address ?? "",
-          serialNumber: c?.serialNumber ?? "",
-          manufacturer: c?.manufacturer ?? "",
-          type: c?.type ?? "",
-        },
-      });
-    }
-  }
-
-  return out
-    .filter((e) => isValidDateOnly(e?.date))
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-}
-
-export async function addPlannedServiceEvent({
-  customerId,
-  date,
-  title,
-  note,
-  source = "calendar",
-}) {
-  await connectDB();
-
-  const cid = toObjectId(customerId);
-  if (!cid) {
-    const err = new Error("Invalid customer id");
-    err.status = 400;
-    throw err;
-  }
-
-  const d = typeof date === "string" ? date.trim() : "";
-  if (!isValidDateOnly(d)) {
-    const err = new Error("Invalid date (expected YYYY-MM-DD)");
-    err.status = 400;
-    throw err;
-  }
-
-  const doc = await Customer.findById(cid);
-  if (!doc) {
-    const err = new Error("Customer not found");
-    err.status = 404;
-    throw err;
-  }
-
-  doc.serviceEvents = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
-  doc.serviceEvents.push({
-    id: crypto.randomUUID(),
-    type: "service",
-    status: "planned",
-    date: d,
-    title: typeof title === "string" && title.trim() ? title.trim() : "Servis",
-    note: typeof note === "string" ? note.trim() : "",
-    source: typeof source === "string" ? source : "calendar",
-  });
-
-  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-  await doc.save();
-
-  return recomputeAndPersistNextService(cid);
-}
-
-export async function updateServiceEventStatus({
-  customerId,
-  eventId,
-  status,
-}) {
-  await connectDB();
-
-  const cid = toObjectId(customerId);
-  if (!cid) {
-    const err = new Error("Invalid customer id");
-    err.status = 400;
-    throw err;
-  }
-
-  const eid = String(eventId ?? "").trim();
-  if (!eid) {
-    const err = new Error("Invalid event id");
-    err.status = 400;
-    throw err;
-  }
-
-  const nextStatus = String(status ?? "").trim();
-  if (!["planned", "done", "canceled"].includes(nextStatus)) {
-    const err = new Error("Invalid status");
-    err.status = 400;
-    throw err;
-  }
-
-  const doc = await Customer.findById(cid);
-  if (!doc) {
-    const err = new Error("Customer not found");
-    err.status = 404;
-    throw err;
-  }
-
-  const events = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
-  const idx = events.findIndex((e) => String(e?.id ?? "") === eid);
-  if (idx === -1) {
-    const err = new Error("Event not found");
-    err.status = 404;
-    throw err;
-  }
-
-  events[idx].status = nextStatus;
-  doc.serviceEvents = events;
-  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-
-  await doc.save();
-  return recomputeAndPersistNextService(cid);
-}
-
-export async function deleteServiceEvent({ customerId, eventId }) {
-  await connectDB();
-
-  const cid = toObjectId(customerId);
-  if (!cid) {
-    const err = new Error("Invalid customer id");
-    err.status = 400;
-    throw err;
-  }
-
-  const eid = String(eventId ?? "").trim();
-  if (!eid) {
-    const err = new Error("Invalid event id");
-    err.status = 400;
-    throw err;
-  }
-
-  const doc = await Customer.findById(cid);
-  if (!doc) {
-    const err = new Error("Customer not found");
-    err.status = 404;
-    throw err;
-  }
-
-  doc.serviceEvents = (doc.serviceEvents || []).filter(
-    (e) => String(e?.id ?? "") !== eid,
-  );
-  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
-
-  await doc.save();
-  return recomputeAndPersistNextService(cid);
-}
-</file>
-
 <file path="src/app/components/AppShell.jsx">
 "use client";
 
@@ -4055,6 +3542,359 @@ export default function MainLayoutClient({
       })}
     </Container>
   );
+}
+</file>
+
+<file path="src/services/customer.service.js">
+import mongoose from "mongoose";
+import crypto from "crypto";
+import Customer from "@/models/Customer";
+import { connectDB } from "@/lib/mongodb";
+
+function toObjectId(id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return new mongoose.Types.ObjectId(id);
+}
+
+function isValidDateOnly(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00.000Z`);
+  return !Number.isNaN(d.getTime());
+}
+
+function normalizeCustomer(doc) {
+  if (!doc) return null;
+
+  const plain = doc.toObject ? doc.toObject() : doc;
+
+  return {
+    ...plain,
+    _id: plain._id?.toString?.() ?? String(plain._id ?? ""),
+    comments: Array.isArray(plain.comments)
+      ? plain.comments.map((c) => ({
+          id: c.id ?? "",
+          text: c.text ?? "",
+          user: c.user ?? "",
+          date:
+            typeof c.date === "string"
+              ? c.date
+              : c.date
+                ? new Date(c.date).toISOString()
+                : "",
+        }))
+      : [],
+    serviceEvents: Array.isArray(plain.serviceEvents)
+      ? plain.serviceEvents.map((e) => ({
+          id: e.id ?? "",
+          type: e.type ?? "service",
+          status: e.status ?? "planned",
+          date: e.date ?? "",
+          title: e.title ?? "Servis",
+          note: e.note ?? "",
+          source: e.source ?? "manual",
+        }))
+      : [],
+  };
+}
+
+async function ensureCommentIdsForCustomers(customerDocs) {
+  let changedAny = false;
+
+  for (const cust of customerDocs) {
+    let changed = false;
+
+    if (Array.isArray(cust.comments)) {
+      for (const c of cust.comments) {
+        if (!c?.id) {
+          c.id = crypto.randomUUID();
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      changedAny = true;
+      await cust.save();
+    }
+  }
+
+  return changedAny;
+}
+
+function computeNextServiceFromEvents(serviceEvents) {
+  const planned = (Array.isArray(serviceEvents) ? serviceEvents : [])
+    .filter(
+      (e) =>
+        e?.type === "service" &&
+        e?.status === "planned" &&
+        isValidDateOnly(e?.date),
+    )
+    .map((e) => e.date)
+    .sort();
+  return planned[0] ?? "";
+}
+
+async function recomputeAndPersistNextService(customerId) {
+  const doc = await Customer.findById(customerId);
+  if (!doc) return null;
+
+  const next = computeNextServiceFromEvents(doc.serviceEvents);
+  doc.nextService = next;
+  await doc.save();
+
+  const lean = await Customer.findById(customerId)
+    .select("-userId -__v -createdAt -updatedAt")
+    .lean();
+  return normalizeCustomer(lean);
+}
+
+export async function getAllCustomers() {
+  await connectDB();
+
+  const docs = await Customer.find({}).select(
+    "-userId -__v -createdAt -updatedAt",
+  );
+  await ensureCommentIdsForCustomers(docs);
+
+  const plain = docs.map((d) => (d.toObject ? d.toObject() : d));
+  return plain.map(normalizeCustomer);
+}
+
+export async function getCustomersByUser(userId) {
+  await connectDB();
+
+  const oid = toObjectId(userId);
+  if (!oid) return [];
+
+  const docs = await Customer.find({ userId: oid }).select(
+    "-userId -__v -createdAt -updatedAt",
+  );
+  await ensureCommentIdsForCustomers(docs);
+
+  const plain = docs.map((d) => (d.toObject ? d.toObject() : d));
+  return plain.map(normalizeCustomer);
+}
+
+export async function createCustomer(userId, data) {
+  await connectDB();
+
+  const oid = toObjectId(userId);
+  if (!oid) {
+    const err = new Error("Invalid user id");
+    err.status = 400;
+    throw err;
+  }
+
+  const created = await Customer.create({
+    ...data,
+    userId: oid,
+    serviceEvents: Array.isArray(data?.serviceEvents) ? data.serviceEvents : [],
+  });
+
+  created.nextService = computeNextServiceFromEvents(created.serviceEvents);
+  await created.save();
+
+  const plain = created.toObject ? created.toObject() : created;
+  return normalizeCustomer(plain);
+}
+
+export async function upsertPlannedServiceEventFromCustomerField(
+  customerId,
+  dateValue,
+) {
+  await connectDB();
+
+  const cid = toObjectId(customerId);
+  if (!cid) {
+    const err = new Error("Invalid customer id");
+    err.status = 400;
+    throw err;
+  }
+
+  const doc = await Customer.findById(cid);
+  if (!doc) {
+    const err = new Error("Customer not found");
+    err.status = 404;
+    throw err;
+  }
+
+  const date = typeof dateValue === "string" ? dateValue.trim() : "";
+  if (!date) {
+    doc.serviceEvents = (doc.serviceEvents || []).filter(
+      (e) => e?.source !== "customer-field",
+    );
+    doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+    await doc.save();
+
+    const lean = await Customer.findById(cid)
+      .select("-userId -__v -createdAt -updatedAt")
+      .lean();
+    return normalizeCustomer(lean);
+  }
+
+  if (!isValidDateOnly(date)) {
+    const err = new Error("Invalid date (expected YYYY-MM-DD)");
+    err.status = 400;
+    throw err;
+  }
+
+  const events = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
+  const idx = events.findIndex(
+    (e) => e?.type === "service" && e?.source === "customer-field",
+  );
+
+  if (idx === -1) {
+    events.push({
+      id: crypto.randomUUID(),
+      type: "service",
+      status: "planned",
+      date,
+      title: "Servis",
+      note: "",
+      source: "customer-field",
+    });
+  } else {
+    events[idx].date = date;
+    events[idx].status = "planned";
+    events[idx].type = "service";
+  }
+
+  doc.serviceEvents = events;
+  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+  await doc.save();
+
+  const lean = await Customer.findById(cid)
+    .select("-userId -__v -createdAt -updatedAt")
+    .lean();
+  return normalizeCustomer(lean);
+}
+
+export async function listServiceEventsForUser(userId, isAdmin = false) {
+  await connectDB();
+
+  const filter = isAdmin ? {} : { userId: toObjectId(userId) };
+  if (!isAdmin && !filter.userId) return [];
+
+  const docs = await Customer.find(filter)
+    .select(
+      "firstName lastName email phone address manufacturer serialNumber type nextService serviceEvents",
+    )
+    .lean();
+
+  const out = [];
+  for (const c of docs) {
+    const customerId = c?._id?.toString?.() ?? String(c?._id ?? "");
+    const customerName =
+      `${c?.firstName ?? ""} ${c?.lastName ?? ""}`.trim() || "(bez jména)";
+
+    const events = Array.isArray(c?.serviceEvents) ? c.serviceEvents : [];
+    for (const e of events) {
+      out.push({
+        id: e?.id ?? "",
+        type: e?.type ?? "service",
+        status: e?.status ?? "planned",
+        date: e?.date ?? "",
+        title: e?.title ?? "Servis",
+        note: e?.note ?? "",
+        source: e?.source ?? "manual",
+        customer: {
+          id: customerId,
+          name: customerName,
+          phone: c?.phone ?? "",
+          address: c?.address ?? "",
+          serialNumber: c?.serialNumber ?? "",
+          manufacturer: c?.manufacturer ?? "",
+          type: c?.type ?? "",
+        },
+      });
+    }
+  }
+
+  return out
+    .filter((e) => isValidDateOnly(e?.date))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+export async function addPlannedServiceEvent({
+  customerId,
+  date,
+  title,
+  note,
+  source = "calendar",
+}) {
+  await connectDB();
+
+  const cid = toObjectId(customerId);
+  if (!cid) {
+    const err = new Error("Invalid customer id");
+    err.status = 400;
+    throw err;
+  }
+
+  const d = typeof date === "string" ? date.trim() : "";
+  if (!isValidDateOnly(d)) {
+    const err = new Error("Invalid date (expected YYYY-MM-DD)");
+    err.status = 400;
+    throw err;
+  }
+
+  const doc = await Customer.findById(cid);
+  if (!doc) {
+    const err = new Error("Customer not found");
+    err.status = 404;
+    throw err;
+  }
+
+  doc.serviceEvents = Array.isArray(doc.serviceEvents) ? doc.serviceEvents : [];
+  doc.serviceEvents.push({
+    id: crypto.randomUUID(),
+    type: "service",
+    status: "planned",
+    date: d,
+    title: typeof title === "string" && title.trim() ? title.trim() : "Servis",
+    note: typeof note === "string" ? note.trim() : "",
+    source: typeof source === "string" ? source : "calendar",
+  });
+
+  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+  await doc.save();
+
+  return recomputeAndPersistNextService(cid);
+}
+
+export async function deleteServiceEvent({ customerId, eventId }) {
+  await connectDB();
+
+  const cid = toObjectId(customerId);
+  if (!cid) {
+    const err = new Error("Invalid customer id");
+    err.status = 400;
+    throw err;
+  }
+
+  const eid = String(eventId ?? "").trim();
+  if (!eid) {
+    const err = new Error("Invalid event id");
+    err.status = 400;
+    throw err;
+  }
+
+  const doc = await Customer.findById(cid);
+  if (!doc) {
+    const err = new Error("Customer not found");
+    err.status = 404;
+    throw err;
+  }
+
+  doc.serviceEvents = (doc.serviceEvents || []).filter(
+    (e) => String(e?.id ?? "") !== eid,
+  );
+  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+
+  await doc.save();
+  return recomputeAndPersistNextService(cid);
 }
 </file>
 
