@@ -987,160 +987,6 @@ export async function DELETE(req, { params }) {
 }
 </file>
 
-<file path="src/app/api/service-events/route.js">
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import { getCurrentUser } from "@/lib/auth";
-import { connectDB } from "@/lib/mongodb";
-import Customer from "@/models/Customer";
-import {
-  listServiceEventsForUser,
-  addPlannedServiceEvent,
-  deleteServiceEvent,
-} from "@/services/customer.service";
-
-function toObjectIdOrNull(value) {
-  const str = String(value ?? "").trim();
-  if (!str) return null;
-  if (!mongoose.Types.ObjectId.isValid(str)) return null;
-  return new mongoose.Types.ObjectId(str);
-}
-
-function dateOnlyToStartIso(dateOnly) {
-  const str = String(dateOnly ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
-  const d = new Date(`${str}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-}
-
-export async function GET(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const isAdmin = user.role === "admin";
-    const events = await listServiceEventsForUser(user.id, isAdmin);
-
-    const calendarEvents = events.map((e) => ({
-      id: e.id,
-      type: e.type,
-      status: e.status,
-      title: e.title,
-      note: e.note,
-      source: e.source,
-      date: e.date,
-
-      start: dateOnlyToStartIso(e.date),
-      end: null,
-
-      customerId: e?.customer?.id ?? "",
-      customerName: e?.customer?.name ?? "",
-      customerPhone: e?.customer?.phone ?? "",
-      customerAddress: e?.customer?.address ?? "",
-
-      customer: e.customer,
-    }));
-
-    return NextResponse.json({ events: calendarEvents }, { status: 200 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { message: "Failed to load service events" },
-      { status: 500 },
-    );
-  }
-}
-
-export async function POST(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const body = await req.json().catch(() => ({}));
-
-    const customerId = String(body?.customerId ?? "").trim();
-    const date = String(body?.date ?? body?.start ?? "").trim();
-    const title = String(body?.title ?? "Servis").trim();
-    const note = typeof body?.note === "string" ? body.note : body?.notes;
-    const noteNorm = typeof note === "string" ? note.trim() : "";
-
-    const updatedCustomer = await addPlannedServiceEvent({
-      customerId,
-      date: date.includes("T") ? date.slice(0, 10) : date,
-      title,
-      note: noteNorm,
-      source: "calendar",
-    });
-
-    return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
-  } catch (err) {
-    console.error(err);
-    const status = err?.status || 500;
-    return NextResponse.json(
-      { message: err?.message || "Failed to create service event" },
-      { status },
-    );
-  }
-}
-
-export async function DELETE(req) {
-  try {
-    const user = await getCurrentUser();
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    await connectDB();
-
-    const url = new URL(req.url);
-    const customerIdRaw = url.searchParams.get("customerId");
-    const eventId = String(url.searchParams.get("eventId") ?? "").trim();
-
-    const customerId = toObjectIdOrNull(customerIdRaw);
-    if (!customerId) {
-      return NextResponse.json(
-        { message: "Invalid customer id" },
-        { status: 400 },
-      );
-    }
-    if (!eventId) {
-      return NextResponse.json(
-        { message: "Invalid event id" },
-        { status: 400 },
-      );
-    }
-
-    const cust = await Customer.findById(customerId).select("_id").lean();
-    if (!cust) {
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 },
-      );
-    }
-
-    const updatedCustomer = await deleteServiceEvent({
-      customerId: customerId.toString(),
-      eventId,
-    });
-
-    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
-  } catch (err) {
-    console.error(err);
-    const status = err?.status || 500;
-    return NextResponse.json(
-      { message: err?.message || "Failed to delete service event" },
-      { status },
-    );
-  }
-}
-</file>
-
 <file path="src/app/calendar/page.jsx">
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -1151,563 +997,6 @@ export default async function CalendarPage() {
   if (!user) redirect("/login");
 
   return <CalendarClient initialUser={user} />;
-}
-</file>
-
-<file path="src/app/components/CalendarClient.jsx">
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  Paper,
-  Divider,
-  Alert,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-
-function formatCzechDateTime(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-
-  return new Intl.DateTimeFormat("cs-CZ", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Europe/Prague",
-  }).format(d);
-}
-
-function customerLabel(c) {
-  const fn = String(c?.firstName ?? "").trim();
-  const ln = String(c?.lastName ?? "").trim();
-  const full = `${fn} ${ln}`.trim();
-  if (full) return full;
-  if (c?.serialNumber) return `SN: ${String(c.serialNumber).trim()}`;
-  if (c?.email) return String(c.email).trim();
-  return "(bez jména)";
-}
-
-function getEventId(ev) {
-  const a = ev?.id?.toString?.();
-  if (a) return a;
-
-  const b = String(ev?.id ?? "").trim();
-  if (b) return b;
-
-  const c = ev?._id?.toString?.();
-  if (c) return c;
-
-  const d = String(ev?._id ?? "").trim();
-  if (d) return d;
-
-  return "";
-}
-
-function getCustomerIdFromEvent(ev) {
-  const a = ev?.customerId?.toString?.();
-  if (a) return a;
-
-  const b = String(ev?.customerId ?? "").trim();
-  if (b) return b;
-
-  const c = ev?.customer?.id?.toString?.();
-  if (c) return c;
-
-  const d = String(ev?.customer?.id ?? "").trim();
-  if (d) return d;
-
-  return "";
-}
-
-export default function CalendarClient() {
-  const [customers, setCustomers] = useState([]);
-  const [events, setEvents] = useState([]);
-
-  const [loadingCustomers, setLoadingCustomers] = useState(true);
-  const [loadingEvents, setLoadingEvents] = useState(true);
-
-  const [errorCustomers, setErrorCustomers] = useState("");
-  const [errorEvents, setErrorEvents] = useState("");
-
-  const [filterCustomerId, setFilterCustomerId] = useState("");
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
-
-  const [deletingIds, setDeletingIds] = useState(() => new Set());
-
-  const [form, setForm] = useState({
-    customerId: "",
-    title: "Servis",
-    start: "",
-    end: "",
-    notes: "",
-  });
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadCustomers = async () => {
-      setLoadingCustomers(true);
-      setErrorCustomers("");
-
-      try {
-        const res = await fetch("/api/customers", {
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok)
-          throw new Error(data?.message || "Nepodařilo se načíst zákazníky");
-
-        if (!mounted) return;
-        setCustomers(Array.isArray(data?.customers) ? data.customers : []);
-      } catch (e) {
-        if (!mounted) return;
-        setErrorCustomers(e?.message || "Chyba při načítání zákazníků");
-      } finally {
-        if (!mounted) return;
-        setLoadingCustomers(false);
-      }
-    };
-
-    loadCustomers();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const loadEvents = async (customerId) => {
-    setLoadingEvents(true);
-    setErrorEvents("");
-
-    try {
-      const qs = new URLSearchParams();
-      if (customerId) qs.set("customerId", customerId);
-
-      const url = qs.toString()
-        ? `/api/service-events?${qs.toString()}`
-        : "/api/service-events";
-
-      const res = await fetch(url, {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(
-          data?.message || "Nepodařilo se načíst servisní eventy",
-        );
-
-      setEvents(Array.isArray(data?.events) ? data.events : []);
-    } catch (e) {
-      setErrorEvents(e?.message || "Chyba při načítání eventů");
-      setEvents([]);
-    } finally {
-      setLoadingEvents(false);
-    }
-  };
-
-  useEffect(() => {
-    loadEvents(filterCustomerId);
-  }, [filterCustomerId]);
-
-  const customersById = useMemo(() => {
-    const m = new Map();
-    for (const c of customers) {
-      const id = c?._id?.toString?.() ?? String(c?._id ?? "");
-      const sid = String(id ?? "").trim();
-      if (sid) m.set(sid, c);
-    }
-    return m;
-  }, [customers]);
-
-  const openCreate = () => {
-    setCreateError("");
-    setForm((prev) => ({
-      ...prev,
-      customerId: filterCustomerId || prev.customerId || "",
-      start: "",
-      end: "",
-      title: prev.title || "Servis",
-      notes: prev.notes || "",
-    }));
-    setCreateOpen(true);
-  };
-
-  const closeCreate = () => {
-    if (creating) return;
-    setCreateOpen(false);
-  };
-
-  const submitCreate = async () => {
-    setCreateError("");
-
-    const payload = {
-      customerId: String(form.customerId ?? "").trim(),
-      title: String(form.title ?? "").trim(),
-      start: String(form.start ?? "").trim(),
-      end: String(form.end ?? "").trim(),
-      notes: String(form.notes ?? "").trim(),
-    };
-
-    if (!payload.customerId) {
-      setCreateError("Vyber zákazníka.");
-      return;
-    }
-    if (!payload.title) {
-      setCreateError("Vyplň název.");
-      return;
-    }
-    if (!payload.start) {
-      setCreateError("Vyplň datum a čas začátku.");
-      return;
-    }
-
-    setCreating(true);
-    try {
-      const res = await fetch("/api/service-events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(data?.message || "Nepodařilo se vytvořit event");
-
-      setCreateOpen(false);
-      await loadEvents(filterCustomerId);
-    } catch (e) {
-      setCreateError(e?.message || "Chyba při vytváření eventu");
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleDelete = async (ev) => {
-    setErrorEvents("");
-
-    const eventId = getEventId(ev);
-    const customerId = getCustomerIdFromEvent(ev);
-
-    if (!eventId || !customerId) {
-      setErrorEvents("Chybí customerId nebo eventId – nelze smazat.");
-      return;
-    }
-
-    const ok = window.confirm(
-      `Smazat "${ev?.title ?? "Servis"}" (${formatCzechDateTime(ev?.start)})?`,
-    );
-    if (!ok) return;
-
-    // optimistic remove
-    const prevEvents = events;
-
-    setDeletingIds((prev) => {
-      const next = new Set(prev);
-      next.add(eventId);
-      return next;
-    });
-
-    setEvents((prev) => prev.filter((x) => getEventId(x) !== eventId));
-
-    try {
-      const qs = new URLSearchParams();
-      qs.set("customerId", customerId);
-      qs.set("eventId", eventId);
-
-      const res = await fetch(`/api/service-events?${qs.toString()}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || "Nepodařilo se smazat event");
-      }
-    } catch (e) {
-      setEvents(prevEvents);
-      setErrorEvents(e?.message || "Chyba při mazání eventu");
-    } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(eventId);
-        return next;
-      });
-    }
-  };
-
-  return (
-    <Container sx={{ mt: 4, maxWidth: 900 }}>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 2,
-        }}
-      >
-        <Typography variant="h5">Kalendář servisů</Typography>
-        <Button variant="contained" onClick={openCreate}>
-          Přidat servis
-        </Button>
-      </Box>
-
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        Eventy jsou uložené v databázi a můžeš je filtrovat podle zákazníka.
-      </Typography>
-
-      <Divider sx={{ my: 2 }} />
-
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems={{ sm: "center" }}
-        >
-          <FormControl fullWidth>
-            <InputLabel id="filter-customer-label">Filtr zákazníka</InputLabel>
-            <Select
-              labelId="filter-customer-label"
-              label="Filtr zákazníka"
-              value={filterCustomerId}
-              onChange={(e) =>
-                setFilterCustomerId(String(e.target.value ?? ""))
-              }
-            >
-              <MenuItem value="">Všichni zákazníci</MenuItem>
-              {customers
-                .slice()
-                .sort((a, b) =>
-                  customerLabel(a).localeCompare(customerLabel(b), "cs"),
-                )
-                .map((c) => {
-                  const id = c?._id?.toString?.() ?? String(c?._id ?? "");
-                  return (
-                    <MenuItem key={id} value={id}>
-                      {customerLabel(c)}
-                    </MenuItem>
-                  );
-                })}
-            </Select>
-          </FormControl>
-
-          <Button
-            variant="outlined"
-            onClick={() => loadEvents(filterCustomerId)}
-            disabled={loadingEvents}
-          >
-            Obnovit
-          </Button>
-        </Stack>
-
-        {loadingCustomers ? (
-          <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            <CircularProgress size={18} />
-            <Typography variant="body2" color="text.secondary">
-              Načítám zákazníky…
-            </Typography>
-          </Box>
-        ) : errorCustomers ? (
-          <Alert severity="warning" sx={{ mt: 2 }}>
-            {errorCustomers}
-          </Alert>
-        ) : null}
-      </Paper>
-
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Seznam eventů
-        </Typography>
-
-        {loadingEvents ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CircularProgress size={18} />
-            <Typography variant="body2" color="text.secondary">
-              Načítám eventy…
-            </Typography>
-          </Box>
-        ) : errorEvents ? (
-          <Alert severity="warning">{errorEvents}</Alert>
-        ) : events.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            Zatím žádné eventy.
-          </Typography>
-        ) : (
-          <List>
-            {events.map((ev) => {
-              const eventId = getEventId(ev);
-              const cid = getCustomerIdFromEvent(ev);
-              const c = cid ? customersById.get(cid) : null;
-              const deleting = Boolean(eventId && deletingIds.has(eventId));
-
-              return (
-                <ListItem
-                  key={eventId || `${cid}-${String(ev?.start ?? "")}`}
-                  divider
-                  secondaryAction={
-                    <Tooltip title="Smazat">
-                      <span>
-                        <IconButton
-                          edge="end"
-                          size="small"
-                          onClick={() => handleDelete(ev)}
-                          disabled={deleting}
-                          aria-label="Smazat event"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  }
-                >
-                  <ListItemText
-                    primary={`${ev?.title ?? "Servis"} — ${formatCzechDateTime(ev?.start)}`}
-                    secondary={
-                      <>
-                        <span>
-                          Zákazník:{" "}
-                          {c ? customerLabel(c) : cid ? `(${cid})` : "—"}
-                        </span>
-                        {ev?.notes ? (
-                          <span>
-                            {" · "}
-                            {String(ev.notes)}
-                          </span>
-                        ) : null}
-                        {deleting ? (
-                          <span>
-                            {" · "}
-                            <em>Mažu…</em>
-                          </span>
-                        ) : null}
-                      </>
-                    }
-                  />
-                </ListItem>
-              );
-            })}
-          </List>
-        )}
-      </Paper>
-
-      <Dialog open={createOpen} onClose={closeCreate} fullWidth maxWidth="sm">
-        <DialogTitle>Přidat servisní event</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel id="create-customer-label">Zákazník</InputLabel>
-              <Select
-                labelId="create-customer-label"
-                label="Zákazník"
-                value={form.customerId}
-                onChange={(e) =>
-                  setForm((p) => ({
-                    ...p,
-                    customerId: String(e.target.value ?? ""),
-                  }))
-                }
-              >
-                {customers
-                  .slice()
-                  .sort((a, b) =>
-                    customerLabel(a).localeCompare(customerLabel(b), "cs"),
-                  )
-                  .map((c) => {
-                    const id = c?._id?.toString?.() ?? String(c?._id ?? "");
-                    return (
-                      <MenuItem key={id} value={id}>
-                        {customerLabel(c)}
-                      </MenuItem>
-                    );
-                  })}
-              </Select>
-            </FormControl>
-
-            <TextField
-              fullWidth
-              label="Název"
-              value={form.title}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, title: e.target.value }))
-              }
-            />
-
-            <TextField
-              fullWidth
-              label="Začátek"
-              type="datetime-local"
-              value={form.start}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, start: e.target.value }))
-              }
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              label="Konec (volitelné)"
-              type="datetime-local"
-              value={form.end}
-              onChange={(e) => setForm((p) => ({ ...p, end: e.target.value }))}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            <TextField
-              fullWidth
-              label="Poznámka (volitelné)"
-              value={form.notes}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, notes: e.target.value }))
-              }
-            />
-
-            {createError ? (
-              <Alert severity="warning">{createError}</Alert>
-            ) : null}
-          </Stack>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={closeCreate} disabled={creating}>
-            Zrušit
-          </Button>
-          <Button
-            variant="contained"
-            onClick={submitCreate}
-            disabled={creating}
-          >
-            {creating ? "Ukládám…" : "Vytvořit"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  );
 }
 </file>
 
@@ -1853,6 +1142,832 @@ export async function POST(req) {
     console.error(err);
     return NextResponse.json({ message: "Chyba serveru" }, { status: 500 });
   }
+}
+</file>
+
+<file path="src/app/api/service-events/route.js">
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { getCurrentUser } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import Customer from "@/models/Customer";
+import {
+  listServiceEventsForUser,
+  addPlannedServiceEvent,
+  deleteServiceEvent,
+  updateServiceEventDate,
+} from "@/services/customer.service";
+
+function toObjectIdOrNull(value) {
+  const str = String(value ?? "").trim();
+  if (!str) return null;
+  if (!mongoose.Types.ObjectId.isValid(str)) return null;
+  return new mongoose.Types.ObjectId(str);
+}
+
+function dateOnlyToStartIso(dateOnly) {
+  const str = String(dateOnly ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+  const d = new Date(`${str}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+export async function GET(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const isAdmin = user.role === "admin";
+    const events = await listServiceEventsForUser(user.id, isAdmin);
+
+    const calendarEvents = events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      status: e.status,
+      title: e.title,
+      note: e.note,
+      source: e.source,
+      date: e.date,
+
+      start: e.date,
+      end: null,
+      allDay: true,
+
+      customerId: e?.customer?.id ?? "",
+      customerName: e?.customer?.name ?? "",
+      customerPhone: e?.customer?.phone ?? "",
+      customerAddress: e?.customer?.address ?? "",
+
+      customer: e.customer,
+    }));
+    return NextResponse.json({ events: calendarEvents }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: "Failed to load service events" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const body = await req.json().catch(() => ({}));
+
+    const customerId = String(body?.customerId ?? "").trim();
+    const date = String(body?.date ?? body?.start ?? "").trim();
+    const title = String(body?.title ?? "Servis").trim();
+    const note = typeof body?.note === "string" ? body.note : body?.notes;
+    const noteNorm = typeof note === "string" ? note.trim() : "";
+
+    const updatedCustomer = await addPlannedServiceEvent({
+      customerId,
+      date: date.includes("T") ? date.slice(0, 10) : date,
+      title,
+      note: noteNorm,
+      source: "calendar",
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to create service event" },
+      { status },
+    );
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const url = new URL(req.url);
+    const customerIdRaw = url.searchParams.get("customerId");
+    const eventId = String(url.searchParams.get("eventId") ?? "").trim();
+
+    const customerId = toObjectIdOrNull(customerIdRaw);
+    if (!customerId) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    }
+    if (!eventId) {
+      return NextResponse.json(
+        { message: "Invalid event id" },
+        { status: 400 },
+      );
+    }
+
+    const cust = await Customer.findById(customerId).select("_id").lean();
+    if (!cust) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+    }
+
+    const updatedCustomer = await deleteServiceEvent({
+      customerId: customerId.toString(),
+      eventId,
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to delete service event" },
+      { status },
+    );
+  }
+}
+export async function PATCH(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    await connectDB();
+
+    const body = await req.json().catch(() => ({}));
+
+    const customerId = String(body?.customerId ?? "").trim();
+    const eventId = String(body?.eventId ?? "").trim();
+
+    const dateRaw = String(body?.date ?? body?.start ?? "").trim();
+    const date = dateRaw.includes("T") ? dateRaw.slice(0, 10) : dateRaw;
+
+    if (!customerId) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    }
+    if (!eventId) {
+      return NextResponse.json(
+        { message: "Invalid event id" },
+        { status: 400 },
+      );
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json(
+        { message: "Invalid date (expected YYYY-MM-DD)" },
+        { status: 400 },
+      );
+    }
+
+    const updatedCustomer = await updateServiceEventDate({
+      customerId,
+      eventId,
+      date,
+    });
+
+    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    const status = err?.status || 500;
+    return NextResponse.json(
+      { message: err?.message || "Failed to update service event" },
+      { status },
+    );
+  }
+}
+</file>
+
+<file path="src/app/components/CalendarClient.jsx">
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
+import interactionPlugin from "@fullcalendar/interaction";
+
+function customerLabel(c) {
+  const fn = String(c?.firstName ?? "").trim();
+  const ln = String(c?.lastName ?? "").trim();
+  const full = `${fn} ${ln}`.trim();
+  if (full) return full;
+  if (c?.serialNumber) return `SN: ${String(c.serialNumber).trim()}`;
+  if (c?.email) return String(c.email).trim();
+  return "(bez jména)";
+}
+
+function getEventId(ev) {
+  const a = ev?.id?.toString?.();
+  if (a) return a;
+  const b = String(ev?.id ?? "").trim();
+  if (b) return b;
+  const c = ev?._id?.toString?.();
+  if (c) return c;
+  const d = String(ev?._id ?? "").trim();
+  if (d) return d;
+  return "";
+}
+
+function getCustomerIdFromEvent(ev) {
+  const a = ev?.customerId?.toString?.();
+  if (a) return a;
+  const b = String(ev?.customerId ?? "").trim();
+  if (b) return b;
+  const c = ev?.customer?.id?.toString?.();
+  if (c) return c;
+  const d = String(ev?.customer?.id ?? "").trim();
+  if (d) return d;
+  return "";
+}
+
+export default function CalendarClient() {
+  const [customers, setCustomers] = useState([]);
+  const [events, setEvents] = useState([]);
+
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  const [errorCustomers, setErrorCustomers] = useState("");
+  const [errorEvents, setErrorEvents] = useState("");
+
+  const [filterCustomerId, setFilterCustomerId] = useState("");
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [deletingIds, setDeletingIds] = useState(() => new Set());
+
+  const [form, setForm] = useState({
+    customerId: "",
+    title: "Servis",
+    date: "",
+    notes: "",
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadCustomers = async () => {
+      setLoadingCustomers(true);
+      setErrorCustomers("");
+
+      try {
+        const res = await fetch("/api/customers", {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data?.message || "Nepodařilo se načíst zákazníky");
+
+        if (!mounted) return;
+        setCustomers(Array.isArray(data?.customers) ? data.customers : []);
+      } catch (e) {
+        if (!mounted) return;
+        setErrorCustomers(e?.message || "Chyba při načítání zákazníků");
+      } finally {
+        if (!mounted) return;
+        setLoadingCustomers(false);
+      }
+    };
+
+    loadCustomers();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const loadEvents = async (customerId) => {
+    setLoadingEvents(true);
+    setErrorEvents("");
+
+    try {
+      const qs = new URLSearchParams();
+      if (customerId) qs.set("customerId", customerId);
+
+      const url = qs.toString()
+        ? `/api/service-events?${qs.toString()}`
+        : "/api/service-events";
+
+      const res = await fetch(url, {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(
+          data?.message || "Nepodařilo se načíst servisní eventy",
+        );
+
+      setEvents(Array.isArray(data?.events) ? data.events : []);
+    } catch (e) {
+      setErrorEvents(e?.message || "Chyba při načítání eventů");
+      setEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents(filterCustomerId);
+  }, [filterCustomerId]);
+
+  const customersById = useMemo(() => {
+    const m = new Map();
+    for (const c of customers) {
+      const id = c?._id?.toString?.() ?? String(c?._id ?? "");
+      const sid = String(id ?? "").trim();
+      if (sid) m.set(sid, c);
+    }
+    return m;
+  }, [customers]);
+
+  const fcEvents = useMemo(() => {
+    return events
+      .map((ev) => {
+        const id = getEventId(ev);
+        const customerId = getCustomerIdFromEvent(ev);
+        const title = String(ev?.title ?? "Servis").trim() || "Servis";
+        const start = String(ev?.date ?? ev?.start ?? "").trim(); // YYYY-MM-DD z API
+
+        if (!id || !start) return null;
+
+        return {
+          id,
+          title,
+          start,
+          allDay: true,
+          extendedProps: {
+            customerId,
+            customerName: String(ev?.customerName ?? "").trim(),
+            note: String(ev?.note ?? ev?.notes ?? "").trim(),
+            status: ev?.status,
+            type: ev?.type,
+            source: ev?.source,
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [events]);
+
+  const openCreate = (prefill = {}) => {
+    setCreateError("");
+    setForm((prev) => ({
+      customerId:
+        prefill.customerId ?? filterCustomerId ?? prev.customerId ?? "",
+      title: prev.title || "Servis",
+      date: prefill.date ?? "",
+      notes: prev.notes || "",
+    }));
+    setCreateOpen(true);
+  };
+
+  const closeCreate = () => {
+    if (creating) return;
+    setCreateOpen(false);
+  };
+
+  const submitCreate = async () => {
+    setCreateError("");
+
+    const payload = {
+      customerId: String(form.customerId ?? "").trim(),
+      title: String(form.title ?? "").trim(),
+      date: String(form.date ?? "").trim(), // YYYY-MM-DD
+      notes: String(form.notes ?? "").trim(),
+    };
+
+    if (!payload.customerId) return setCreateError("Vyber zákazníka.");
+    if (!payload.title) return setCreateError("Vyplň název.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.date))
+      return setCreateError("Vyplň datum (YYYY-MM-DD).");
+
+    setCreating(true);
+    try {
+      const res = await fetch("/api/service-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.message || "Nepodařilo se vytvořit event");
+
+      setCreateOpen(false);
+      await loadEvents(filterCustomerId);
+    } catch (e) {
+      setCreateError(e?.message || "Chyba při vytváření eventu");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteByRawEvent = async (rawEvent) => {
+    setErrorEvents("");
+
+    const eventId = getEventId(rawEvent);
+    const customerId = getCustomerIdFromEvent(rawEvent);
+
+    if (!eventId || !customerId) {
+      setErrorEvents("Chybí customerId nebo eventId – nelze smazat.");
+      return;
+    }
+
+    const ok = window.confirm(
+      `Smazat "${rawEvent?.title ?? "Servis"}" (${rawEvent?.date ?? rawEvent?.start ?? ""})?`,
+    );
+    if (!ok) return;
+
+    const prevEvents = events;
+
+    setDeletingIds((prev) => {
+      const next = new Set(prev);
+      next.add(eventId);
+      return next;
+    });
+
+    setEvents((prev) => prev.filter((x) => getEventId(x) !== eventId));
+
+    try {
+      const qs = new URLSearchParams();
+      qs.set("customerId", customerId);
+      qs.set("eventId", eventId);
+
+      const res = await fetch(`/api/service-events?${qs.toString()}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "Nepodařilo se smazat event");
+      }
+    } catch (e) {
+      setEvents(prevEvents);
+      setErrorEvents(e?.message || "Chyba při mazání eventu");
+    } finally {
+      setDeletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(eventId);
+        return next;
+      });
+    }
+  };
+
+  const handleEventDrop = async (info) => {
+    const eventId = String(info?.event?.id ?? "").trim();
+    const customerId = String(
+      info?.event?.extendedProps?.customerId ?? "",
+    ).trim();
+    const date = String(info?.event?.startStr ?? "").slice(0, 10); // YYYY-MM-DD
+
+    if (!eventId || !customerId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      info.revert();
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/service-events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ customerId, eventId, date }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.message || "Nepodařilo se přesunout event");
+
+      await loadEvents(filterCustomerId);
+    } catch (e) {
+      setErrorEvents(e?.message || "Chyba při přesunu eventu");
+      info.revert();
+    }
+  };
+
+  return (
+    <Container sx={{ mt: 4, maxWidth: 1100 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Typography variant="h5">Kalendář servisů</Typography>
+        <Button variant="contained" onClick={() => openCreate()}>
+          Přidat servis
+        </Button>
+      </Box>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        Klikni do dne pro vytvoření. Event můžeš přetáhnout na jiný den.
+      </Typography>
+
+      <Divider sx={{ my: 2 }} />
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems={{ sm: "center" }}
+        >
+          <FormControl fullWidth>
+            <InputLabel id="filter-customer-label">Filtr zákazníka</InputLabel>
+            <Select
+              labelId="filter-customer-label"
+              label="Filtr zákazníka"
+              value={filterCustomerId}
+              onChange={(e) =>
+                setFilterCustomerId(String(e.target.value ?? ""))
+              }
+            >
+              <MenuItem value="">Všichni zákazníci</MenuItem>
+              {customers
+                .slice()
+                .sort((a, b) =>
+                  customerLabel(a).localeCompare(customerLabel(b), "cs"),
+                )
+                .map((c) => {
+                  const id = c?._id?.toString?.() ?? String(c?._id ?? "");
+                  return (
+                    <MenuItem key={id} value={id}>
+                      {customerLabel(c)}
+                    </MenuItem>
+                  );
+                })}
+            </Select>
+          </FormControl>
+
+          <Button
+            variant="outlined"
+            onClick={() => loadEvents(filterCustomerId)}
+            disabled={loadingEvents}
+          >
+            Obnovit
+          </Button>
+        </Stack>
+
+        {loadingCustomers ? (
+          <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 1 }}>
+            <CircularProgress size={18} />
+            <Typography variant="body2" color="text.secondary">
+              Načítám zákazníky…
+            </Typography>
+          </Box>
+        ) : errorCustomers ? (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            {errorCustomers}
+          </Alert>
+        ) : null}
+      </Paper>
+
+      <Paper sx={{ p: 2 }}>
+        {loadingEvents ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CircularProgress size={18} />
+            <Typography variant="body2" color="text.secondary">
+              Načítám eventy…
+            </Typography>
+          </Box>
+        ) : errorEvents ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {errorEvents}
+          </Alert>
+        ) : null}
+
+        <FullCalendar
+          eventDisplay="block"
+          eventBorderColor="transparent"
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            listPlugin,
+            interactionPlugin,
+          ]}
+          initialView="dayGridMonth"
+          height="auto"
+          timeZone="Europe/Prague"
+          locale="cs"
+          firstDay={1}
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+          }}
+          weekends
+          editable
+          selectable
+          selectMirror
+          dayMaxEvents
+          events={fcEvents}
+          dateClick={(arg) => {
+            openCreate({ date: arg.dateStr });
+          }}
+          eventClick={(arg) => {
+            setSelectedEvent(arg.event);
+          }}
+          eventDrop={handleEventDrop}
+        />
+      </Paper>
+
+      <Dialog open={createOpen} onClose={closeCreate} fullWidth maxWidth="sm">
+        <DialogTitle>Přidat servisní event</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel id="create-customer-label">Zákazník</InputLabel>
+              <Select
+                labelId="create-customer-label"
+                label="Zákazník"
+                value={form.customerId}
+                onChange={(e) =>
+                  setForm((p) => ({
+                    ...p,
+                    customerId: String(e.target.value ?? ""),
+                  }))
+                }
+              >
+                {customers
+                  .slice()
+                  .sort((a, b) =>
+                    customerLabel(a).localeCompare(customerLabel(b), "cs"),
+                  )
+                  .map((c) => {
+                    const id = c?._id?.toString?.() ?? String(c?._id ?? "");
+                    return (
+                      <MenuItem key={id} value={id}>
+                        {customerLabel(c)}
+                      </MenuItem>
+                    );
+                  })}
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Název"
+              value={form.title}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
+            />
+
+            <TextField
+              fullWidth
+              label="Datum"
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              fullWidth
+              label="Poznámka (volitelné)"
+              value={form.notes}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, notes: e.target.value }))
+              }
+            />
+
+            {createError ? (
+              <Alert severity="warning">{createError}</Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={closeCreate} disabled={creating}>
+            Zrušit
+          </Button>
+          <Button
+            variant="contained"
+            onClick={submitCreate}
+            disabled={creating}
+          >
+            {creating ? "Ukládám…" : "Vytvořit"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selectedEvent)}
+        onClose={() => setSelectedEvent(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Detail eventu</DialogTitle>
+        <DialogContent>
+          {selectedEvent ? (
+            <Stack spacing={1.25} sx={{ mt: 1 }}>
+              <Typography variant="subtitle1">
+                {selectedEvent.title || "Servis"}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                Datum: {String(selectedEvent.startStr ?? "").slice(0, 10)}
+              </Typography>
+
+              <Typography variant="body2" color="text.secondary">
+                Zákazník:{" "}
+                {selectedEvent.extendedProps?.customerId
+                  ? customersById.get(
+                      String(selectedEvent.extendedProps.customerId),
+                    )?.firstName
+                    ? customerLabel(
+                        customersById.get(
+                          String(selectedEvent.extendedProps.customerId),
+                        ),
+                      )
+                    : selectedEvent.extendedProps?.customerName ||
+                      `(${selectedEvent.extendedProps.customerId})`
+                  : "—"}
+              </Typography>
+
+              {selectedEvent.extendedProps?.note ? (
+                <Typography variant="body2">
+                  Poznámka: {String(selectedEvent.extendedProps.note)}
+                </Typography>
+              ) : null}
+            </Stack>
+          ) : null}
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "space-between" }}>
+          <Box>
+            <Tooltip title="Smazat">
+              <span>
+                <IconButton
+                  color="error"
+                  onClick={() => {
+                    const raw = {
+                      id: selectedEvent?.id,
+                      title: selectedEvent?.title,
+                      date: String(selectedEvent?.startStr ?? "").slice(0, 10),
+                      customerId: selectedEvent?.extendedProps?.customerId,
+                    };
+                    setSelectedEvent(null);
+                    handleDeleteByRawEvent(raw);
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+
+          <Button onClick={() => setSelectedEvent(null)}>Zavřít</Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
 }
 </file>
 
@@ -2836,40 +2951,6 @@ export async function POST(req) {
 }
 </file>
 
-<file path="package.json">
-{
-  "name": "vado",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@emotion/cache": "^11.14.0",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.2",
-    "@mui/material": "^7.3.2",
-    "@mui/material-nextjs": "^7.3.7",
-    "bcryptjs": "^3.0.3",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.2",
-    "next": "^16.1.1",
-    "openai": "^6.17.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.3"
-  }
-}
-</file>
-
 <file path="src/app/components/LoginPage.jsx">
 "use client";
 
@@ -3093,6 +3174,46 @@ if (process.env.NODE_ENV !== "production") {
 
 export default mongoose.models[MODEL_NAME] ||
   mongoose.model(MODEL_NAME, CustomerSchema);
+</file>
+
+<file path="package.json">
+{
+  "name": "vado",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/material-nextjs": "^7.3.7",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.0.2",
+    "next": "^16.1.1",
+    "openai": "^6.17.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/list": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.3"
+  }
+}
 </file>
 
 <file path="src/app/components/AppShell.jsx">
@@ -3894,6 +4015,52 @@ export async function deleteServiceEvent({ customerId, eventId }) {
   doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
 
   await doc.save();
+  return recomputeAndPersistNextService(cid);
+}
+
+export async function updateServiceEventDate({ customerId, eventId, date }) {
+  await connectDB();
+
+  const cid = toObjectId(customerId);
+  if (!cid) {
+    const err = new Error("Invalid customer id");
+    err.status = 400;
+    throw err;
+  }
+
+  const eid = String(eventId ?? "").trim();
+  if (!eid) {
+    const err = new Error("Invalid event id");
+    err.status = 400;
+    throw err;
+  }
+
+  const d = typeof date === "string" ? date.trim() : "";
+  if (!isValidDateOnly(d)) {
+    const err = new Error("Invalid date (expected YYYY-MM-DD)");
+    err.status = 400;
+    throw err;
+  }
+
+  const doc = await Customer.findById(cid);
+  if (!doc) {
+    const err = new Error("Customer not found");
+    err.status = 404;
+    throw err;
+  }
+
+  const ev = (doc.serviceEvents || []).find((e) => String(e?.id ?? "") === eid);
+  if (!ev) {
+    const err = new Error("Event not found");
+    err.status = 404;
+    throw err;
+  }
+
+  ev.date = d;
+
+  doc.nextService = computeNextServiceFromEvents(doc.serviceEvents);
+  await doc.save();
+
   return recomputeAndPersistNextService(cid);
 }
 </file>

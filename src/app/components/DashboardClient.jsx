@@ -23,6 +23,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorIcon from "@mui/icons-material/Error";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import MapIcon from "@mui/icons-material/Map";
 
 function addMonths(date, months) {
   const d = new Date(date);
@@ -202,6 +203,29 @@ export default function DashboardClient() {
             icon={<SmartToyIcon />}
             onClick={() => router.push("/ai")}
           />
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: "100%" }}>
+            <CardActionArea
+              onClick={() => router.push("/map")}
+              sx={{ height: "100%" }}
+            >
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <MapIcon />
+                  <Typography variant="h6">Mapa</Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  Zobrazení zákazníků na Google mapě podle adres.
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
         </Grid>
 
         <Grid item xs={12} sm={6}>

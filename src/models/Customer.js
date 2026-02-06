@@ -56,6 +56,14 @@ const CustomerSchema = new mongoose.Schema(
     phone: { type: String, trim: true, default: "" },
     address: { type: String, trim: true, default: "" },
 
+    location: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      formattedAddress: { type: String, trim: true, default: "" },
+      placeId: { type: String, trim: true, default: "" },
+      geocodedAt: { type: String, trim: true, default: "" },
+    },
+
     manufacturer: { type: String, trim: true, default: "" },
     serialNumber: { type: String, trim: true, default: "" },
     type: { type: String, trim: true, default: "" },

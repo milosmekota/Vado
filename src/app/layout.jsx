@@ -2,6 +2,7 @@ import ThemeRegistry from "./ThemeRegistry";
 import AppShell from "@/app/components/AppShell";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
+import "leaflet/dist/leaflet.css";
 
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
