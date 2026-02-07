@@ -54,8 +54,10 @@ src/app/api/auth/me/route.js
 src/app/api/auth/register/route.js
 src/app/api/customers/[id]/comments/[commentId]/route.js
 src/app/api/customers/[id]/comments/route.js
+src/app/api/customers/[id]/location/route.js
 src/app/api/customers/[id]/route.js
 src/app/api/customers/route.js
+src/app/api/geocode/route.js
 src/app/api/service-events/route.js
 src/app/calendar/page.jsx
 src/app/components/AiChatClient.jsx
@@ -65,12 +67,14 @@ src/app/components/CustomerCard.jsx
 src/app/components/DashboardClient.jsx
 src/app/components/LoginPage.jsx
 src/app/components/MainLayoutClient.jsx
+src/app/components/MapClient.jsx
 src/app/components/PlaceholderClient.jsx
 src/app/customers/new/page.jsx
 src/app/customers/page.jsx
 src/app/favicon.ico
 src/app/layout.jsx
 src/app/login/page.jsx
+src/app/map/page.jsx
 src/app/page.js
 src/app/settings/page.jsx
 src/app/ThemeRegistry.jsx
@@ -477,6 +481,184 @@ Odpovídej česky, stručně, v odrážkách, s jasnou prioritou. Nepoužívej a
 }
 </file>
 
+<file path="src/app/api/customers/[id]/location/route.js">
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { connectDB } from "@/lib/mongodb";
+import Customer from "@/models/Customer";
+import { getCurrentUser } from "@/lib/auth";
+
+function toObjectId(value) {
+  try {
+    const str = String(value ?? "").trim();
+    if (!str) return null;
+    if (!mongoose.Types.ObjectId.isValid(str)) return null;
+    return new mongoose.Types.ObjectId(str);
+  } catch {
+    return null;
+  }
+}
+
+async function getParamId(params) {
+  const p = await params;
+  return p?.id;
+}
+
+function buildCustomerFilter({ user, customerId }) {
+  if (user?.role === "admin") return { _id: customerId };
+
+  const userId = toObjectId(user?.id);
+  if (!userId) return null;
+  return { _id: customerId, userId };
+}
+
+export async function PATCH(req, { params }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    await connectDB();
+
+    const id = await getParamId(params);
+    const customerId = toObjectId(id);
+    if (!customerId) {
+      return NextResponse.json(
+        { message: "Invalid customer id" },
+        { status: 400 },
+      );
+    }
+
+    const filter = buildCustomerFilter({ user, customerId });
+    if (!filter) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+
+    const lat = Number(body?.lat);
+    const lng = Number(body?.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return NextResponse.json({ message: "Invalid lat/lng" }, { status: 400 });
+    }
+
+    const formattedAddress =
+      typeof body?.formattedAddress === "string"
+        ? body.formattedAddress.trim()
+        : "";
+    const placeId =
+      typeof body?.placeId === "string" ? body.placeId.trim() : "";
+
+    const updated = await Customer.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          "location.lat": lat,
+          "location.lng": lng,
+          "location.formattedAddress": formattedAddress,
+          "location.placeId": placeId,
+          "location.geocodedAt": new Date().toISOString(),
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ customer: updated }, { status: 200 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: err?.message || "Failed to update location" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
+<file path="src/app/api/geocode/route.js">
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+
+export async function POST(req) {
+  try {
+    const user = await getCurrentUser();
+    if (!user)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const address = String(body?.address ?? "").trim();
+
+    if (!address) {
+      return NextResponse.json({ message: "Missing address" }, { status: 400 });
+    }
+
+    const url =
+      "https://nominatim.openstreetmap.org/search?" +
+      new URLSearchParams({
+        q: address,
+        format: "json",
+        addressdetails: "1",
+        limit: "1",
+      }).toString();
+
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Vado (contact: milos.mekota@post.cz)",
+        "Accept-Language": "cs,en;q=0.8",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { message: "Geocoding failed" },
+        { status: 502 },
+      );
+    }
+
+    const data = await res.json().catch(() => []);
+    const hit = Array.isArray(data) ? data[0] : null;
+
+    if (!hit?.lat || !hit?.lon) {
+      return NextResponse.json({ message: "No results" }, { status: 404 });
+    }
+
+    const lat = Number(hit.lat);
+    const lng = Number(hit.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return NextResponse.json(
+        { message: "Invalid geocode result" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        lat,
+        lng,
+        formattedAddress: hit.display_name || "",
+        placeId: "",
+      },
+      { status: 200 },
+    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { message: err?.message || "Error" },
+      { status: 500 },
+    );
+  }
+}
+</file>
+
 <file path="src/app/components/AiChatClient.jsx">
 "use client";
 
@@ -644,6 +826,255 @@ export default function AiChatClient() {
 }
 </file>
 
+<file path="src/app/components/MapClient.jsx">
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  Box,
+  Button,
+  Container,
+  Divider,
+  Paper,
+  Typography,
+  CircularProgress,
+  Alert,
+  Stack,
+} from "@mui/material";
+
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+
+const DEFAULT_CENTER = [50.0755, 14.4378]; // Praha (fallback)
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+function customerLabel(c) {
+  const fn = String(c?.firstName ?? "").trim();
+  const ln = String(c?.lastName ?? "").trim();
+  return `${fn} ${ln}`.trim() || String(c?.email ?? "").trim() || "(bez jména)";
+}
+
+function getCustomerId(c) {
+  const a = c?._id?.toString?.();
+  if (a) return a;
+  return String(c?._id ?? "").trim();
+}
+
+export default function MapClient() {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeMsg, setGeocodeMsg] = useState("");
+
+  const loadCustomers = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/customers", {
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(data?.message || "Nepodařilo se načíst zákazníky");
+
+      setCustomers(Array.isArray(data?.customers) ? data.customers : []);
+    } catch (e) {
+      setError(e?.message || "Chyba při načítání zákazníků");
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const markers = useMemo(() => {
+    return customers
+      .filter(
+        (c) =>
+          Number.isFinite(c?.location?.lat) &&
+          Number.isFinite(c?.location?.lng),
+      )
+      .map((c) => ({
+        id: getCustomerId(c),
+        name: customerLabel(c),
+        address: String(c?.address ?? "").trim(),
+        pos: [c.location.lat, c.location.lng],
+      }));
+  }, [customers]);
+
+  const customersNeedingGeocode = useMemo(() => {
+    return customers.filter((c) => {
+      const addr = String(c?.address ?? "").trim();
+      const lat = c?.location?.lat;
+      const lng = c?.location?.lng;
+      return addr && !(Number.isFinite(lat) && Number.isFinite(lng));
+    });
+  }, [customers]);
+
+  const geocodeMissing = async () => {
+    setError("");
+    setGeocodeMsg("");
+    setGeocoding(true);
+
+    try {
+      const list = customersNeedingGeocode.slice(0, 20);
+      let ok = 0;
+      let fail = 0;
+
+      for (let i = 0; i < list.length; i++) {
+        const c = list[i];
+        const id = getCustomerId(c);
+        const address = String(c?.address ?? "").trim();
+
+        if (!id || !address) {
+          fail++;
+          continue;
+        }
+
+        setGeocodeMsg(`Geokóduju ${i + 1}/${list.length}: ${address}`);
+
+        const r1 = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ address }),
+        });
+
+        const g = await r1.json().catch(() => ({}));
+        if (!r1.ok) {
+          fail++;
+          await new Promise((r) => setTimeout(r, 1100));
+          continue;
+        }
+
+        const r2 = await fetch(`/api/customers/${id}/location`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            lat: g.lat,
+            lng: g.lng,
+            formattedAddress: g.formattedAddress || "",
+            placeId: "",
+          }),
+        });
+
+        if (!r2.ok) fail++;
+        else ok++;
+
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+
+      setGeocodeMsg(`Hotovo: OK ${ok}, fail ${fail}. Obnovuju…`);
+      await loadCustomers();
+      setGeocodeMsg(`Hotovo: OK ${ok}, fail ${fail}.`);
+    } catch (e) {
+      setError(e?.message || "Chyba při geokódování");
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  return (
+    <Container sx={{ mt: 4, maxWidth: 1200 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Typography variant="h5">Mapa zákazníků</Typography>
+
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            onClick={loadCustomers}
+            disabled={loading || geocoding}
+          >
+            Obnovit
+          </Button>
+          <Button
+            variant="contained"
+            onClick={geocodeMissing}
+            disabled={
+              loading || geocoding || customersNeedingGeocode.length === 0
+            }
+          >
+            Geokódovat chybějící ({customersNeedingGeocode.length})
+          </Button>
+        </Stack>
+      </Box>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        Markery se zobrazí zákazníkům s uloženými souřadnicemi. Tlačítko
+        geokóduje max 20 adres v dávce (safe throttling).
+      </Typography>
+
+      <Divider sx={{ my: 2 }} />
+
+      {loading ? (
+        <CircularProgress />
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : (
+        <>
+          {geocodeMsg ? (
+            <Alert severity={geocoding ? "info" : "success"} sx={{ mb: 2 }}>
+              {geocodeMsg}
+            </Alert>
+          ) : null}
+
+          <Paper sx={{ height: 650 }}>
+            <MapContainer
+              center={DEFAULT_CENTER}
+              zoom={8}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                attribution="&copy; OpenStreetMap contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              {markers.map((m) => (
+                <Marker key={m.id} position={m.pos}>
+                  <Popup>
+                    <strong>{m.name}</strong>
+                    <br />
+                    {m.address}
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          </Paper>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Zobrazeno markerů: {markers.length} / zákazníků celkem:{" "}
+            {customers.length}
+          </Typography>
+        </>
+      )}
+    </Container>
+  );
+}
+</file>
+
 <file path="src/app/components/PlaceholderClient.jsx">
 "use client";
 
@@ -662,6 +1093,19 @@ export default function PlaceholderClient({ title, subtitle }) {
       </Paper>
     </Container>
   );
+}
+</file>
+
+<file path="src/app/map/page.jsx">
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import MapClient from "@/app/components/MapClient";
+
+export default async function MapPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  return <MapClient initialUser={user} />;
 }
 </file>
 
@@ -2336,6 +2780,100 @@ export async function getCurrentUser() {
 }
 </file>
 
+<file path="src/app/api/auth/register/route.js">
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+
+const isRegistrationEnabled = () => {
+  return (
+    process.env.ALLOW_REGISTRATION === "true" ||
+    process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true"
+  );
+};
+
+export async function POST(req) {
+  if (!isRegistrationEnabled()) {
+    return NextResponse.json(
+      { message: "Registrace je momentálně vypnutá" },
+      { status: 403 }
+    );
+  }
+
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const email =
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body?.password === "string" ? body.password : "";
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { message: "Email a heslo jsou povinné" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { message: "Heslo musí mít alespoň 8 znaků" },
+        { status: 400 }
+      );
+    }
+
+    const exists = await User.findOne({ email }).select("_id");
+    if (exists) {
+      return NextResponse.json(
+        { message: "Uživatel již existuje" },
+        { status: 409 }
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+    });
+
+    const userId = user._id.toString();
+
+    const token = jwt.sign(
+      { userId, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    const response = NextResponse.json(
+      {
+        user: {
+          id: userId,
+          email: user.email,
+          role: user.role,
+        },
+      },
+      { status: 201 }
+    );
+
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    return response;
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ message: "Chyba serveru" }, { status: 500 });
+  }
+}
+</file>
+
 <file path="src/app/components/DashboardClient.jsx">
 "use client";
 
@@ -2362,6 +2900,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorIcon from "@mui/icons-material/Error";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import MapIcon from "@mui/icons-material/Map";
 
 function addMonths(date, months) {
   const d = new Date(date);
@@ -2543,6 +3082,29 @@ export default function DashboardClient() {
           />
         </Grid>
 
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: "100%" }}>
+            <CardActionArea
+              onClick={() => router.push("/map")}
+              sx={{ height: "100%" }}
+            >
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <MapIcon />
+                  <Typography variant="h6">Mapa</Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  Zobrazení zákazníků na Google mapě podle adres.
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
+        </Grid>
+
         <Grid item xs={12} sm={6}>
           <DashCard
             title="Nastavení"
@@ -2622,126 +3184,6 @@ export default function DashboardClient() {
         )}
       </Box>
     </Container>
-  );
-}
-</file>
-
-<file path="src/app/api/auth/register/route.js">
-import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-
-const isRegistrationEnabled = () => {
-  return (
-    process.env.ALLOW_REGISTRATION === "true" ||
-    process.env.NEXT_PUBLIC_ALLOW_REGISTRATION === "true"
-  );
-};
-
-export async function POST(req) {
-  if (!isRegistrationEnabled()) {
-    return NextResponse.json(
-      { message: "Registrace je momentálně vypnutá" },
-      { status: 403 }
-    );
-  }
-
-  try {
-    await connectDB();
-
-    const body = await req.json();
-    const email =
-      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = typeof body?.password === "string" ? body.password : "";
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { message: "Email a heslo jsou povinné" },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        { message: "Heslo musí mít alespoň 8 znaků" },
-        { status: 400 }
-      );
-    }
-
-    const exists = await User.findOne({ email }).select("_id");
-    if (exists) {
-      return NextResponse.json(
-        { message: "Uživatel již existuje" },
-        { status: 409 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-    });
-
-    const userId = user._id.toString();
-
-    const token = jwt.sign(
-      { userId, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    const response = NextResponse.json(
-      {
-        user: {
-          id: userId,
-          email: user.email,
-          role: user.role,
-        },
-      },
-      { status: 201 }
-    );
-
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-
-    return response;
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ message: "Chyba serveru" }, { status: 500 });
-  }
-}
-</file>
-
-<file path="src/app/layout.jsx">
-import ThemeRegistry from "./ThemeRegistry";
-import AppShell from "@/app/components/AppShell";
-import { cookies } from "next/headers";
-import { getCurrentUser } from "@/lib/auth";
-
-export default async function RootLayout({ children }) {
-  const cookieStore = await cookies();
-  const cookieMode = cookieStore.get("vado_colorMode")?.value;
-
-  const initialMode = cookieMode === "dark" ? "dark" : "light";
-
-  const initialUser = await getCurrentUser();
-
-  return (
-    <html lang="cs">
-      <body>
-        <ThemeRegistry initialMode={initialMode}>
-          <AppShell initialUser={initialUser}>{children}</AppShell>
-        </ThemeRegistry>
-      </body>
-    </html>
   );
 }
 </file>
@@ -2951,6 +3393,33 @@ export async function POST(req) {
 }
 </file>
 
+<file path="src/app/layout.jsx">
+import ThemeRegistry from "./ThemeRegistry";
+import AppShell from "@/app/components/AppShell";
+import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/auth";
+import "leaflet/dist/leaflet.css";
+
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const cookieMode = cookieStore.get("vado_colorMode")?.value;
+
+  const initialMode = cookieMode === "dark" ? "dark" : "light";
+
+  const initialUser = await getCurrentUser();
+
+  return (
+    <html lang="cs">
+      <body>
+        <ThemeRegistry initialMode={initialMode}>
+          <AppShell initialUser={initialUser}>{children}</AppShell>
+        </ThemeRegistry>
+      </body>
+    </html>
+  );
+}
+</file>
+
 <file path="src/app/components/LoginPage.jsx">
 "use client";
 
@@ -3085,134 +3554,6 @@ export default async function Home() {
   if (!user) redirect("/login");
 
   return <DashboardClient initialUser={user} />;
-}
-</file>
-
-<file path="src/models/Customer.js">
-import mongoose from "mongoose";
-
-const MODEL_NAME = "Customer";
-
-const CommentSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true, trim: true },
-    text: { type: String, required: true, trim: true },
-    user: { type: String, required: true, trim: true },
-    date: { type: String, required: true, trim: true },
-  },
-  { _id: false },
-);
-
-const ServiceEventSchema = new mongoose.Schema(
-  {
-    id: { type: String, required: true, trim: true },
-
-    type: {
-      type: String,
-      enum: ["service"],
-      default: "service",
-      required: true,
-    },
-
-    status: {
-      type: String,
-      enum: ["planned", "done", "canceled"],
-      default: "planned",
-      required: true,
-    },
-
-    date: { type: String, required: true, trim: true },
-
-    title: { type: String, trim: true, default: "Servis" },
-    note: { type: String, trim: true, default: "" },
-
-    source: { type: String, trim: true, default: "manual" },
-  },
-  { _id: false },
-);
-
-const CustomerSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-
-    firstName: { type: String, trim: true, default: "" },
-    lastName: { type: String, trim: true, default: "" },
-
-    email: { type: String, trim: true, lowercase: true, default: "" },
-    phone: { type: String, trim: true, default: "" },
-    address: { type: String, trim: true, default: "" },
-
-    manufacturer: { type: String, trim: true, default: "" },
-    serialNumber: { type: String, trim: true, default: "" },
-    type: { type: String, trim: true, default: "" },
-
-    installYear: { type: Number, min: 1900, max: 3000, default: null },
-
-    online: { type: Boolean, default: false },
-
-    lastService: { type: String, trim: true, default: "" },
-
-    nextService: { type: String, trim: true, default: "" },
-
-    serviceEvents: { type: [ServiceEventSchema], default: [] },
-
-    comments: { type: [CommentSchema], default: [] },
-  },
-  { timestamps: true },
-);
-
-if (process.env.NODE_ENV !== "production") {
-  if (mongoose.models[MODEL_NAME]) {
-    delete mongoose.models[MODEL_NAME];
-  }
-}
-
-export default mongoose.models[MODEL_NAME] ||
-  mongoose.model(MODEL_NAME, CustomerSchema);
-</file>
-
-<file path="package.json">
-{
-  "name": "vado",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@emotion/cache": "^11.14.0",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.2",
-    "@mui/material": "^7.3.2",
-    "@mui/material-nextjs": "^7.3.7",
-    "bcryptjs": "^3.0.3",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.0.2",
-    "next": "^16.1.1",
-    "openai": "^6.17.0",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "@fullcalendar/core": "^6.1.19",
-    "@fullcalendar/daygrid": "^6.1.19",
-    "@fullcalendar/interaction": "^6.1.19",
-    "@fullcalendar/list": "^6.1.19",
-    "@fullcalendar/react": "^6.1.19",
-    "@fullcalendar/timegrid": "^6.1.19"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.3"
-  }
 }
 </file>
 
@@ -3663,6 +4004,145 @@ export default function MainLayoutClient({
       })}
     </Container>
   );
+}
+</file>
+
+<file path="src/models/Customer.js">
+import mongoose from "mongoose";
+
+const MODEL_NAME = "Customer";
+
+const CommentSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
+    text: { type: String, required: true, trim: true },
+    user: { type: String, required: true, trim: true },
+    date: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
+const ServiceEventSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, trim: true },
+
+    type: {
+      type: String,
+      enum: ["service"],
+      default: "service",
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["planned", "done", "canceled"],
+      default: "planned",
+      required: true,
+    },
+
+    date: { type: String, required: true, trim: true },
+
+    title: { type: String, trim: true, default: "Servis" },
+    note: { type: String, trim: true, default: "" },
+
+    source: { type: String, trim: true, default: "manual" },
+  },
+  { _id: false },
+);
+
+const CustomerSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
+    firstName: { type: String, trim: true, default: "" },
+    lastName: { type: String, trim: true, default: "" },
+
+    email: { type: String, trim: true, lowercase: true, default: "" },
+    phone: { type: String, trim: true, default: "" },
+    address: { type: String, trim: true, default: "" },
+
+    location: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      formattedAddress: { type: String, trim: true, default: "" },
+      placeId: { type: String, trim: true, default: "" },
+      geocodedAt: { type: String, trim: true, default: "" },
+    },
+
+    manufacturer: { type: String, trim: true, default: "" },
+    serialNumber: { type: String, trim: true, default: "" },
+    type: { type: String, trim: true, default: "" },
+
+    installYear: { type: Number, min: 1900, max: 3000, default: null },
+
+    online: { type: Boolean, default: false },
+
+    lastService: { type: String, trim: true, default: "" },
+
+    nextService: { type: String, trim: true, default: "" },
+
+    serviceEvents: { type: [ServiceEventSchema], default: [] },
+
+    comments: { type: [CommentSchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+if (process.env.NODE_ENV !== "production") {
+  if (mongoose.models[MODEL_NAME]) {
+    delete mongoose.models[MODEL_NAME];
+  }
+}
+
+export default mongoose.models[MODEL_NAME] ||
+  mongoose.model(MODEL_NAME, CustomerSchema);
+</file>
+
+<file path="package.json">
+{
+  "name": "vado",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/list": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "@mui/icons-material": "^7.3.2",
+    "@mui/material": "^7.3.2",
+    "@mui/material-nextjs": "^7.3.7",
+    "@react-google-maps/api": "^2.20.8",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
+    "mongoose": "^9.0.2",
+    "next": "^16.1.1",
+    "openai": "^6.17.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.3"
+  }
 }
 </file>
 
