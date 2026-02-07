@@ -18,6 +18,38 @@ import L from "leaflet";
 
 const DEFAULT_CENTER = [50.0286, 15.2027];
 
+function addMonths(date, months) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+}
+
+function getServiceBucket(lastServiceValue) {
+  const raw =
+    typeof lastServiceValue === "string" ? lastServiceValue.trim() : "";
+
+  if (!raw) return "missing";
+
+  const last = new Date(raw);
+  if (Number.isNaN(last.getTime())) return "missing";
+
+  const now = new Date();
+  const before12 = addMonths(now, -12);
+  const before24 = addMonths(now, -24);
+
+  if (last >= before12) return "ok";
+  if (last >= before24) return "dueSoon";
+  return "overdue";
+}
+
+function bucketLabel(bucket) {
+  if (bucket === "ok") return "Servis OK";
+  if (bucket === "dueSoon") return "Blížící se servis";
+  if (bucket === "overdue") return "Servis po termínu";
+  return "Bez servisu";
+}
+// ---------------------------------------------
+
 function fixLeafletIcons() {
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
@@ -50,6 +82,29 @@ export default function MapLeafletClient() {
 
   useEffect(() => {
     fixLeafletIcons();
+  }, []);
+
+  const markerIcons = useMemo(() => {
+    const shadowUrl =
+      "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
+
+    const make = (color) =>
+      new L.Icon({
+        iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+        iconRetinaUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+        shadowUrl,
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+
+    return {
+      ok: make("green"),
+      dueSoon: make("orange"),
+      overdue: make("red"),
+      missing: make("grey"),
+    };
   }, []);
 
   const loadCustomers = async () => {
@@ -86,12 +141,17 @@ export default function MapLeafletClient() {
           Number.isFinite(c?.location?.lat) &&
           Number.isFinite(c?.location?.lng),
       )
-      .map((c) => ({
-        id: getCustomerId(c),
-        name: customerLabel(c),
-        address: String(c?.address ?? "").trim(),
-        pos: [c.location.lat, c.location.lng],
-      }));
+      .map((c) => {
+        const bucket = getServiceBucket(c?.lastService);
+        return {
+          id: getCustomerId(c),
+          name: customerLabel(c),
+          address: String(c?.address ?? "").trim(),
+          pos: [c.location.lat, c.location.lng],
+          bucket,
+          lastService: String(c?.lastService ?? "").trim(),
+        };
+      });
   }, [customers]);
 
   const center = useMemo(() => {
@@ -197,7 +257,7 @@ export default function MapLeafletClient() {
           gap: 2,
         }}
       >
-        <Typography variant="h5">Mapa zákazníků (Free verze)</Typography>
+        <Typography variant="h5">Mapa zákazníků</Typography>
 
         <Stack direction="row" spacing={1}>
           <Button
@@ -250,11 +310,20 @@ export default function MapLeafletClient() {
               />
 
               {markers.map((m) => (
-                <Marker key={m.id} position={m.pos}>
+                <Marker
+                  key={m.id}
+                  position={m.pos}
+                  icon={markerIcons[m.bucket] || markerIcons.missing}
+                >
                   <Popup>
                     <strong>{m.name}</strong>
                     <br />
                     {m.address}
+                    <br />
+                    <span style={{ display: "inline-block", marginTop: 6 }}>
+                      {bucketLabel(m.bucket)}
+                      {m.lastService ? ` (poslední: ${m.lastService})` : ""}
+                    </span>
                   </Popup>
                 </Marker>
               ))}

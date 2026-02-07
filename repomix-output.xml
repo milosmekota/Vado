@@ -68,6 +68,7 @@ src/app/components/DashboardClient.jsx
 src/app/components/LoginPage.jsx
 src/app/components/MainLayoutClient.jsx
 src/app/components/MapClient.jsx
+src/app/components/MapLeafletClient.jsx
 src/app/components/PlaceholderClient.jsx
 src/app/customers/new/page.jsx
 src/app/customers/page.jsx
@@ -826,7 +827,7 @@ export default function AiChatClient() {
 }
 </file>
 
-<file path="src/app/components/MapClient.jsx">
+<file path="src/app/components/MapLeafletClient.jsx">
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -845,15 +846,17 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 
-const DEFAULT_CENTER = [50.0755, 14.4378]; // Praha (fallback)
+const DEFAULT_CENTER = [50.0286, 15.2027];
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+function fixLeafletIcons() {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl:
+      "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  });
+}
 
 function customerLabel(c) {
   const fn = String(c?.firstName ?? "").trim();
@@ -867,13 +870,17 @@ function getCustomerId(c) {
   return String(c?._id ?? "").trim();
 }
 
-export default function MapClient() {
+export default function MapLeafletClient() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeMsg, setGeocodeMsg] = useState("");
+
+  useEffect(() => {
+    fixLeafletIcons();
+  }, []);
 
   const loadCustomers = async () => {
     setLoading(true);
@@ -916,6 +923,26 @@ export default function MapClient() {
         pos: [c.location.lat, c.location.lng],
       }));
   }, [customers]);
+
+  const center = useMemo(() => {
+    if (markers.length === 1) return markers[0].pos;
+
+    if (markers.length > 1) {
+      const avgLat =
+        markers.reduce((sum, m) => sum + m.pos[0], 0) / markers.length;
+      const avgLng =
+        markers.reduce((sum, m) => sum + m.pos[1], 0) / markers.length;
+      return [avgLat, avgLng];
+    }
+
+    return DEFAULT_CENTER;
+  }, [markers]);
+
+  const zoom = useMemo(() => {
+    if (markers.length === 1) return 13;
+    if (markers.length > 1) return 10;
+    return 11;
+  }, [markers.length]);
 
   const customersNeedingGeocode = useMemo(() => {
     return customers.filter((c) => {
@@ -1000,7 +1027,7 @@ export default function MapClient() {
           gap: 2,
         }}
       >
-        <Typography variant="h5">Mapa zákazníků</Typography>
+        <Typography variant="h5">Mapa zákazníků (Free verze)</Typography>
 
         <Stack direction="row" spacing={1}>
           <Button
@@ -1043,8 +1070,8 @@ export default function MapClient() {
 
           <Paper sx={{ height: 650 }}>
             <MapContainer
-              center={DEFAULT_CENTER}
-              zoom={8}
+              center={center}
+              zoom={zoom}
               style={{ height: "100%", width: "100%" }}
             >
               <TileLayer
@@ -1441,6 +1468,27 @@ export default async function CalendarPage() {
   if (!user) redirect("/login");
 
   return <CalendarClient initialUser={user} />;
+}
+</file>
+
+<file path="src/app/components/MapClient.jsx">
+"use client";
+
+import dynamic from "next/dynamic";
+import { Box, CircularProgress } from "@mui/material";
+
+const MapLeafletClient = dynamic(() => import("./MapLeafletClient"), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ mt: 4, display: "flex", alignItems: "center", gap: 1 }}>
+      <CircularProgress size={18} />
+      Načítám mapu…
+    </Box>
+  ),
+});
+
+export default function MapClient() {
+  return <MapLeafletClient />;
 }
 </file>
 
