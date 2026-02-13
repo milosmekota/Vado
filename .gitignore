@@ -43,3 +43,4 @@ next-env.d.ts
 
 repomix-*.xml
 *.repomix.xml
+repomix-output.xml

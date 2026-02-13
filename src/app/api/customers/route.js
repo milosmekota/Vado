@@ -5,6 +5,7 @@ import {
   getCustomersByUser,
   createCustomer,
 } from "@/services/customer.service";
+import crypto from "crypto";
 
 function toIntOrNull(value) {
   const n = Number(value);
@@ -28,7 +29,7 @@ export async function GET() {
   } catch (err) {
     console.error(err);
     return NextResponse.json(
-      { message: "Failed to load customers" },
+      { message: "Failed to fetch customers" },
       { status: 500 },
     );
   }
@@ -42,6 +43,11 @@ export async function POST(req) {
     }
 
     const body = await req.json();
+
+    const initialComment =
+      typeof body?.initialComment === "string"
+        ? body.initialComment.trim()
+        : "";
 
     const allowed = {
       firstName: typeof body?.firstName === "string" ? body.firstName : "",
@@ -69,6 +75,16 @@ export async function POST(req) {
 
       nextService: "",
       serviceEvents: [],
+      comments: initialComment
+        ? [
+            {
+              id: crypto.randomUUID(),
+              text: initialComment,
+              user: user.email,
+              date: new Date().toISOString(),
+            },
+          ]
+        : [],
     };
 
     if (typeof allowed.email === "string")

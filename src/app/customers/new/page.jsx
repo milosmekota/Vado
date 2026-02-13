@@ -27,7 +27,7 @@ export default function NewCustomerPage() {
     installYear: "",
     online: false,
     lastService: "",
-    comments: [],
+    initialComment: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -53,6 +53,7 @@ export default function NewCustomerPage() {
           ? null
           : Number(form.installYear),
       online: Boolean(form.online),
+      initialComment: String(form.initialComment ?? "").trim(),
     };
 
     try {
@@ -107,7 +108,6 @@ export default function NewCustomerPage() {
           fullWidth
           label="Email"
           name="email"
-          type="email"
           value={form.email}
           onChange={handleChange}
           sx={{ mt: 2 }}
@@ -142,7 +142,7 @@ export default function NewCustomerPage() {
 
         <TextField
           fullWidth
-          label="Výrobní číslo"
+          label="Sériové číslo"
           name="serialNumber"
           value={form.serialNumber}
           onChange={handleChange}
@@ -166,7 +166,6 @@ export default function NewCustomerPage() {
           value={form.installYear}
           onChange={handleChange}
           sx={{ mt: 2 }}
-          inputProps={{ min: 1900, max: 3000 }}
         />
 
         <FormControlLabel
@@ -191,6 +190,18 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
           InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField
+          fullWidth
+          label="Komentář"
+          name="initialComment"
+          value={form.initialComment}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+          multiline
+          minRows={3}
+          placeholder="Např. domluvená prohlídka, poznámka k přístupu, stav zařízení..."
         />
 
         {error && (
