@@ -70,10 +70,10 @@ function deriveMunicipalityFromAddress(address) {
 const FIELD_META = [
   { key: "firstName", label: "Jméno", type: "text" },
   { key: "lastName", label: "Příjmení", type: "text" },
-  { key: "municipality", label: "Obec", type: "text" },
   { key: "email", label: "Email", type: "email" },
   { key: "phone", label: "Telefon", type: "text" },
   { key: "address", label: "Adresa", type: "text" },
+  { key: "municipality", label: "Obec", type: "text" },
   { key: "manufacturer", label: "Výrobce", type: "text" },
   { key: "serialNumber", label: "Výrobní číslo", type: "text" },
   { key: "type", label: "Typ", type: "text" },
