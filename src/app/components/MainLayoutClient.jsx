@@ -34,6 +34,7 @@ function buildSearchIndex(customer) {
     customer?.email,
     customer?.serialNumber,
     customer?.address,
+    customer?.municipality,
     customer?.manufacturer,
     customer?.type,
     customer?.phone,

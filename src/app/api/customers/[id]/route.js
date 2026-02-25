@@ -26,7 +26,7 @@ function pickAllowedCustomerFields(body) {
   const allowed = {
     firstName: body?.firstName,
     lastName: body?.lastName,
-
+    municipality: body?.municipality,
     email: body?.email,
     phone: body?.phone,
     address: body?.address,
@@ -53,6 +53,7 @@ function pickAllowedCustomerFields(body) {
   const stringKeys = [
     "firstName",
     "lastName",
+    "municipality",
     "email",
     "phone",
     "address",

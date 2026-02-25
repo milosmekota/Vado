@@ -21,6 +21,7 @@ export default function NewCustomerPage() {
     email: "",
     phone: "",
     address: "",
+    municipality: "",
     manufacturer: "",
     serialNumber: "",
     type: "",
@@ -85,7 +86,6 @@ export default function NewCustomerPage() {
         <Typography variant="h5" gutterBottom>
           Přidat nového zákazníka
         </Typography>
-
         <TextField
           fullWidth
           label="Jméno"
@@ -94,7 +94,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Příjmení"
@@ -103,7 +102,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Email"
@@ -112,7 +110,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Telefon"
@@ -121,7 +118,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Adresa"
@@ -130,7 +126,14 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
+        <TextField
+          fullWidth
+          label="Obec"
+          name="municipality"
+          value={form.municipality}
+          onChange={handleChange}
+          sx={{ mt: 2 }}
+        />
         <TextField
           fullWidth
           label="Výrobce"
@@ -139,7 +142,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Sériové číslo"
@@ -148,7 +150,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Typ"
@@ -157,7 +158,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <TextField
           fullWidth
           label="Rok instalace"
@@ -167,7 +167,6 @@ export default function NewCustomerPage() {
           onChange={handleChange}
           sx={{ mt: 2 }}
         />
-
         <FormControlLabel
           sx={{ mt: 2 }}
           control={
@@ -180,7 +179,6 @@ export default function NewCustomerPage() {
           }
           label="Online"
         />
-
         <TextField
           fullWidth
           label="Poslední servis"
@@ -191,7 +189,6 @@ export default function NewCustomerPage() {
           sx={{ mt: 2 }}
           InputLabelProps={{ shrink: true }}
         />
-
         <TextField
           fullWidth
           label="Komentář"
@@ -203,13 +200,11 @@ export default function NewCustomerPage() {
           minRows={3}
           placeholder="Např. domluvená prohlídka, poznámka k přístupu, stav zařízení..."
         />
-
         {error && (
           <Typography color="error" sx={{ mt: 2 }}>
             {error}
           </Typography>
         )}
-
         <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
           <Button
             variant="contained"

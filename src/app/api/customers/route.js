@@ -52,6 +52,8 @@ export async function POST(req) {
     const allowed = {
       firstName: typeof body?.firstName === "string" ? body.firstName : "",
       lastName: typeof body?.lastName === "string" ? body.lastName : "",
+      municipality:
+        typeof body?.municipality === "string" ? body.municipality : "",
 
       email: typeof body?.email === "string" ? body.email : "",
       phone: typeof body?.phone === "string" ? body.phone : "",
@@ -86,7 +88,8 @@ export async function POST(req) {
           ]
         : [],
     };
-
+    if (typeof allowed.municipality === "string")
+      allowed.municipality = allowed.municipality.trim();
     if (typeof allowed.email === "string")
       allowed.email = allowed.email.trim().toLowerCase();
     if (typeof allowed.firstName === "string")

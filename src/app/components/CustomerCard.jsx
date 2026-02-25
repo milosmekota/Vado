@@ -50,9 +50,27 @@ const formatCzechDateTime = (value) => {
   }).format(d);
 };
 
+function deriveMunicipalityFromAddress(address) {
+  const raw = String(address ?? "").trim();
+  if (!raw) return "";
+
+  const parts = raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const tail = parts.length ? parts[parts.length - 1] : raw;
+
+  return tail
+    .replace(/\b\d{3}\s?\d{2}\b/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const FIELD_META = [
   { key: "firstName", label: "Jméno", type: "text" },
   { key: "lastName", label: "Příjmení", type: "text" },
+  { key: "municipality", label: "Obec", type: "text" },
   { key: "email", label: "Email", type: "email" },
   { key: "phone", label: "Telefon", type: "text" },
   { key: "address", label: "Adresa", type: "text" },
@@ -62,7 +80,6 @@ const FIELD_META = [
   { key: "installYear", label: "Rok instalace", type: "number" },
   { key: "online", label: "Online", type: "checkbox" },
   { key: "lastService", label: "Poslední servis", type: "date" },
-
   { key: "nextService", label: "Další servis", type: "date" },
 ];
 
@@ -154,11 +171,22 @@ function CustomerCardInner({
     const ln = String(data.lastName ?? "").trim();
     const full = `${fn} ${ln}`.trim();
 
-    if (full) return full;
+    const municipalityRaw = String(data?.municipality ?? "").trim();
+    const municipality =
+      municipalityRaw || deriveMunicipalityFromAddress(data?.address);
+
+    if (full) return municipality ? `${full}  —  ${municipality}` : full;
     if (data.serialNumber) return `SN: ${String(data.serialNumber).trim()}`;
     if (data.email) return String(data.email).trim();
     return "(bez jména)";
-  }, [data.firstName, data.lastName, data.serialNumber, data.email]);
+  }, [
+    data.firstName,
+    data.lastName,
+    data.serialNumber,
+    data.email,
+    data.municipality,
+    data.address,
+  ]);
 
   const serviceStatus = useMemo(
     () => getServiceStatus(data?.lastService),
@@ -174,6 +202,9 @@ function CustomerCardInner({
       const payload = {
         firstName: data.firstName ?? "",
         lastName: data.lastName ?? "",
+
+        municipality: data.municipality ?? "",
+
         email: data.email ?? "",
         phone: data.phone ?? "",
         address: data.address ?? "",
@@ -186,7 +217,6 @@ function CustomerCardInner({
             : Number(data.installYear),
         online: Boolean(data.online),
         lastService: data.lastService ?? "",
-
         nextService: data.nextService ?? "",
       };
 

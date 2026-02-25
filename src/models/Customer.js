@@ -55,6 +55,7 @@ const CustomerSchema = new mongoose.Schema(
     email: { type: String, trim: true, lowercase: true, default: "" },
     phone: { type: String, trim: true, default: "" },
     address: { type: String, trim: true, default: "" },
+    municipality: { type: String, trim: true, default: "" },
 
     location: {
       lat: { type: Number, default: null },
