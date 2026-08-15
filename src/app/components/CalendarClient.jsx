@@ -22,6 +22,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -66,6 +67,8 @@ function getCustomerIdFromEvent(ev) {
 }
 
 export default function CalendarClient() {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+
   const [customers, setCustomers] = useState([]);
   const [events, setEvents] = useState([]);
 
@@ -176,7 +179,13 @@ export default function CalendarClient() {
       .map((ev) => {
         const id = getEventId(ev);
         const customerId = getCustomerIdFromEvent(ev);
-        const title = String(ev?.title ?? "Servis").trim() || "Servis";
+        const serviceTitle = String(ev?.title ?? "Servis").trim() || "Servis";
+        const customerLastName = String(
+          customersById.get(customerId)?.lastName ?? "",
+        ).trim();
+        const title = isMobile && customerLastName
+          ? customerLastName
+          : serviceTitle;
         const start = String(ev?.date ?? ev?.start ?? "").trim(); // YYYY-MM-DD z API
 
         if (!id || !start) return null;
@@ -189,6 +198,7 @@ export default function CalendarClient() {
           extendedProps: {
             customerId,
             customerName: String(ev?.customerName ?? "").trim(),
+            serviceTitle,
             note: String(ev?.note ?? ev?.notes ?? "").trim(),
             status: ev?.status,
             type: ev?.type,
@@ -197,7 +207,7 @@ export default function CalendarClient() {
         };
       })
       .filter(Boolean);
-  }, [events]);
+  }, [customersById, events, isMobile]);
 
   const openCreate = (prefill = {}) => {
     setCreateError("");
@@ -554,7 +564,7 @@ export default function CalendarClient() {
           {selectedEvent ? (
             <Stack spacing={1.25} sx={{ mt: 1 }}>
               <Typography variant="subtitle1">
-                {selectedEvent.title || "Servis"}
+                {selectedEvent.extendedProps?.serviceTitle || "Servis"}
               </Typography>
 
               <Typography variant="body2" color="text.secondary">
@@ -595,7 +605,8 @@ export default function CalendarClient() {
                   onClick={() => {
                     const raw = {
                       id: selectedEvent?.id,
-                      title: selectedEvent?.title,
+                      title:
+                        selectedEvent?.extendedProps?.serviceTitle || "Servis",
                       date: String(selectedEvent?.startStr ?? "").slice(0, 10),
                       customerId: selectedEvent?.extendedProps?.customerId,
                     };

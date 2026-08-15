@@ -4,6 +4,10 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
 import crypto from "crypto";
+import {
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toObjectId(value) {
   try {
@@ -36,6 +40,12 @@ function normalizeCustomer(doc) {
         }))
       : [],
   };
+}
+
+function buildCustomerFilter(user, customerId) {
+  if (user?.role === "admin") return { _id: customerId };
+  const userId = toObjectId(user?.id);
+  return userId ? { _id: customerId, userId } : null;
 }
 
 export async function POST(req, { params }) {
@@ -73,8 +83,23 @@ export async function POST(req, { params }) {
       date: new Date().toISOString(),
     };
 
+    const filter = buildCustomerFilter(user, customerId);
+    if (!filter) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const existingCustomer = await Customer.findOne(filter)
+      .select("_id userId firstName lastName email serialNumber")
+      .lean();
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
+      );
+    }
+
     const updatedCustomer = await Customer.findOneAndUpdate(
-      { _id: customerId },
+      filter,
       {
         $push: {
           comments: {
@@ -94,6 +119,20 @@ export async function POST(req, { params }) {
         { status: 404 },
       );
     }
+
+    await recordAuditEvent({
+      ownerId: existingCustomer.userId,
+      actor: user,
+      action: "comment_added",
+      entityType: "comment",
+      entityId: commentObj.id,
+      customerId,
+      customerName: customerDisplayName(existingCustomer),
+      summary: `Přidán komentář zákazníkovi ${customerDisplayName(existingCustomer)}`,
+      changes: [
+        { field: "comment", label: "Komentář", from: "—", to: text },
+      ],
+    });
 
     return NextResponse.json(
       { customer: normalizeCustomer(updatedCustomer) },

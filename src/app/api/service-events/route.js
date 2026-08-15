@@ -9,12 +9,30 @@ import {
   deleteServiceEvent,
   updateServiceEventDate,
 } from "@/services/customer.service";
+import {
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toObjectIdOrNull(value) {
   const str = String(value ?? "").trim();
   if (!str) return null;
   if (!mongoose.Types.ObjectId.isValid(str)) return null;
   return new mongoose.Types.ObjectId(str);
+}
+
+function buildCustomerFilter(user, customerId) {
+  if (user?.role === "admin") return { _id: customerId };
+  const userId = toObjectIdOrNull(user?.id);
+  return userId ? { _id: customerId, userId } : null;
+}
+
+async function getAccessibleCustomer(user, customerId) {
+  const objectId = toObjectIdOrNull(customerId);
+  if (!objectId) return null;
+  const filter = buildCustomerFilter(user, objectId);
+  if (!filter) return null;
+  return Customer.findOne(filter).lean();
 }
 
 function dateOnlyToStartIso(dateOnly) {
@@ -78,16 +96,48 @@ export async function POST(req) {
 
     const customerId = String(body?.customerId ?? "").trim();
     const date = String(body?.date ?? body?.start ?? "").trim();
-    const title = String(body?.title ?? "Servis").trim();
+    const title = String(body?.title ?? "Servis").trim() || "Servis";
     const note = typeof body?.note === "string" ? body.note : body?.notes;
     const noteNorm = typeof note === "string" ? note.trim() : "";
+    const normalizedDate = date.includes("T") ? date.slice(0, 10) : date;
+
+    const existingCustomer = await getAccessibleCustomer(user, customerId);
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
+      );
+    }
+
+    const previousEventIds = new Set(
+      (existingCustomer.serviceEvents || []).map((event) => String(event?.id)),
+    );
 
     const updatedCustomer = await addPlannedServiceEvent({
       customerId,
-      date: date.includes("T") ? date.slice(0, 10) : date,
+      date: normalizedDate,
       title,
       note: noteNorm,
       source: "calendar",
+    });
+
+    const createdEvent = updatedCustomer.serviceEvents?.find(
+      (event) => !previousEventIds.has(String(event?.id)),
+    );
+
+    await recordAuditEvent({
+      ownerId: existingCustomer.userId,
+      actor: user,
+      action: "service_created",
+      entityType: "serviceEvent",
+      entityId: createdEvent?.id || customerId,
+      customerId,
+      customerName: customerDisplayName(existingCustomer),
+      summary: `Naplánován servis zákazníka ${customerDisplayName(existingCustomer)}`,
+      changes: [
+        { field: "date", label: "Termín servisu", from: "—", to: normalizedDate },
+        { field: "title", label: "Název servisu", from: "—", to: title },
+      ],
     });
 
     return NextResponse.json({ customer: updatedCustomer }, { status: 201 });
@@ -127,10 +177,20 @@ export async function DELETE(req) {
       );
     }
 
-    const cust = await Customer.findById(customerId).select("_id").lean();
+    const cust = await getAccessibleCustomer(user, customerId);
     if (!cust) {
       return NextResponse.json(
-        { message: "Customer not found" },
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
+      );
+    }
+
+    const deletedEvent = cust.serviceEvents?.find(
+      (event) => String(event?.id ?? "") === eventId,
+    );
+    if (!deletedEvent) {
+      return NextResponse.json(
+        { message: "Event not found" },
         { status: 404 },
       );
     }
@@ -138,6 +198,25 @@ export async function DELETE(req) {
     const updatedCustomer = await deleteServiceEvent({
       customerId: customerId.toString(),
       eventId,
+    });
+
+    await recordAuditEvent({
+      ownerId: cust.userId,
+      actor: user,
+      action: "service_deleted",
+      entityType: "serviceEvent",
+      entityId: eventId,
+      customerId,
+      customerName: customerDisplayName(cust),
+      summary: `Smazán servis zákazníka ${customerDisplayName(cust)}`,
+      changes: [
+        {
+          field: "date",
+          label: "Termín servisu",
+          from: deletedEvent.date,
+          to: "—",
+        },
+      ],
     });
 
     return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
@@ -185,11 +264,50 @@ export async function PATCH(req) {
       );
     }
 
+    const existingCustomer = await getAccessibleCustomer(user, customerId);
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
+      );
+    }
+
+    const existingEvent = existingCustomer.serviceEvents?.find(
+      (event) => String(event?.id ?? "") === eventId,
+    );
+    if (!existingEvent) {
+      return NextResponse.json(
+        { message: "Event not found" },
+        { status: 404 },
+      );
+    }
+
     const updatedCustomer = await updateServiceEventDate({
       customerId,
       eventId,
       date,
     });
+
+    if (existingEvent.date !== date) {
+      await recordAuditEvent({
+        ownerId: existingCustomer.userId,
+        actor: user,
+        action: "service_moved",
+        entityType: "serviceEvent",
+        entityId: eventId,
+        customerId,
+        customerName: customerDisplayName(existingCustomer),
+        summary: `Přesunut servis zákazníka ${customerDisplayName(existingCustomer)}`,
+        changes: [
+          {
+            field: "date",
+            label: "Termín servisu",
+            from: existingEvent.date,
+            to: date,
+          },
+        ],
+      });
+    }
 
     return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
   } catch (err) {

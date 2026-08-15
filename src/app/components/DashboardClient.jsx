@@ -24,6 +24,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ErrorIcon from "@mui/icons-material/Error";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import MapIcon from "@mui/icons-material/Map";
+import HistoryIcon from "@mui/icons-material/History";
 
 function addMonths(date, months) {
   const d = new Date(date);
@@ -49,23 +50,70 @@ function getServiceBucket(lastServiceValue) {
   return "overdue";
 }
 
-function DashCard({ title, subtitle, icon, onClick, disabled = false }) {
+function DashCard({
+  title,
+  icon,
+  onClick,
+  disabled = false,
+  color = "primary",
+}) {
   return (
-    <Card sx={{ height: "100%" }}>
+    <Card
+      variant="outlined"
+      sx={{
+        height: "100%",
+        borderRadius: 3,
+        overflow: "hidden",
+        transition: "transform 160ms ease, box-shadow 160ms ease",
+        "@media (hover: hover)": {
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: 4,
+          },
+        },
+      }}
+    >
       <CardActionArea
         onClick={disabled ? undefined : onClick}
         sx={{ height: "100%" }}
         disabled={disabled}
       >
-        <CardContent sx={{ height: "100%" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 1 }}>
+        <CardContent
+          sx={{
+            height: "100%",
+            minHeight: { xs: 112, sm: 120 },
+            p: { xs: 1.5, sm: 2 },
+            display: "flex",
+            flexDirection: "column",
+            alignItems: { xs: "center", sm: "flex-start" },
+            textAlign: { xs: "center", sm: "left" },
+            "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+          }}
+        >
+          <Box
+            sx={(theme) => {
+              const paletteColor = theme.palette[color] || theme.palette.primary;
+              return {
+                width: 44,
+                height: 44,
+                mb: 1.25,
+                borderRadius: 2.5,
+                display: "grid",
+                placeItems: "center",
+                color: paletteColor.main,
+                bgcolor: `${paletteColor.main}18`,
+                "& .MuiSvgIcon-root": { fontSize: 25 },
+              };
+            }}
+          >
             {icon}
-            <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-              {title}
-            </Typography>
           </Box>
-          <Typography variant="body2" color="text.secondary">
-            {subtitle}
+
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 700, lineHeight: 1.25 }}
+          >
+            {title}
           </Typography>
         </CardContent>
       </CardActionArea>
@@ -177,66 +225,72 @@ export default function DashboardClient() {
         Moduly
       </Typography>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, minmax(0, 1fr))",
+            sm: "repeat(3, minmax(0, 1fr))",
+            lg: "repeat(6, minmax(0, 1fr))",
+          },
+          gap: { xs: 1.25, sm: 2 },
+          mb: 3,
+        }}
+      >
+        <Box>
           <DashCard
             title="Zákazníci"
-            subtitle="Seznam zákazníků, servisní data a komentáře"
             icon={<PeopleAltIcon />}
             onClick={() => router.push("/customers")}
+            color="primary"
           />
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6}>
+        <Box>
           <DashCard
             title="Kalendář"
-            subtitle="Plán servisů"
             icon={<CalendarMonthIcon />}
             onClick={() => router.push("/calendar")}
+            color="warning"
           />
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6}>
+        <Box>
           <DashCard
             title="AI asistent"
-            subtitle="Dotazy nad databází a návrhy akcí"
             icon={<SmartToyIcon />}
             onClick={() => router.push("/ai")}
+            color="secondary"
           />
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ height: "100%" }}>
-            <CardActionArea
-              onClick={() => router.push("/map")}
-              sx={{ height: "100%" }}
-            >
-              <CardContent>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <MapIcon />
-                  <Typography variant="h6">Mapa</Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  Zobrazení zákazníků na Google mapě podle adres.
-                </Typography>
-              </CardContent>
-            </CardActionArea>
-          </Card>
-        </Grid>
+        <Box>
+          <DashCard
+            title="Mapa"
+            icon={<MapIcon />}
+            onClick={() => router.push("/map")}
+            color="success"
+          />
+        </Box>
 
-        <Grid item xs={12} sm={6}>
+        <Box>
           <DashCard
             title="Nastavení"
-            subtitle="Uživatelé, role, preference (rezerva)"
             icon={<SettingsIcon />}
             onClick={() => router.push("/settings")}
+            color="info"
           />
-        </Grid>
-      </Grid>
+        </Box>
+
+        <Box>
+          <DashCard
+            title="Historie"
+            icon={<HistoryIcon />}
+            onClick={() => router.push("/history")}
+            color="info"
+          />
+        </Box>
+      </Box>
 
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>

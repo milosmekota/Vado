@@ -4,6 +4,10 @@ import crypto from "crypto";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toObjectId(value) {
   try {
@@ -57,8 +61,14 @@ function canManageComment(currentUser, comment) {
   return isOwner(currentUser, comment);
 }
 
-async function ensureCommentIds(customerId) {
-  const customer = await Customer.findById(customerId);
+function buildCustomerFilter(user, customerId) {
+  if (user?.role === "admin") return { _id: customerId };
+  const userId = toObjectId(user?.id);
+  return userId ? { _id: customerId, userId } : null;
+}
+
+async function ensureCommentIds(filter) {
+  const customer = await Customer.findOne(filter);
   if (!customer) return null;
 
   let changed = false;
@@ -103,7 +113,11 @@ export async function PATCH(req, { params }) {
     if (!text)
       return NextResponse.json({ message: "Text je povinný" }, { status: 400 });
 
-    const customer = await ensureCommentIds(customerId);
+    const filter = buildCustomerFilter(user, customerId);
+    if (!filter)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    const customer = await ensureCommentIds(filter);
     if (!customer)
       return NextResponse.json(
         { message: "Customer not found" },
@@ -125,14 +139,34 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
+    const previousText = comment.text;
     comment.text = text;
     comment.date = new Date().toISOString();
 
     await customer.save();
 
-    const updatedCustomer = await Customer.findById(customerId)
+    const updatedCustomer = await Customer.findOne(filter)
       .select("-userId -__v -createdAt -updatedAt")
       .lean();
+
+    await recordAuditEvent({
+      ownerId: customer.userId,
+      actor: user,
+      action: "comment_updated",
+      entityType: "comment",
+      entityId: commentId,
+      customerId,
+      customerName: customerDisplayName(customer),
+      summary: `Upraven komentář zákazníka ${customerDisplayName(customer)}`,
+      changes: [
+        {
+          field: "comment",
+          label: "Komentář",
+          from: previousText,
+          to: text,
+        },
+      ],
+    });
 
     return NextResponse.json(
       { customer: normalizeCustomer(updatedCustomer) },
@@ -170,7 +204,11 @@ export async function DELETE(req, { params }) {
         { status: 400 },
       );
 
-    const customer = await ensureCommentIds(customerId);
+    const filter = buildCustomerFilter(user, customerId);
+    if (!filter)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+    const customer = await ensureCommentIds(filter);
     if (!customer)
       return NextResponse.json(
         { message: "Customer not found" },
@@ -195,9 +233,28 @@ export async function DELETE(req, { params }) {
     customer.comments.splice(idx, 1);
     await customer.save();
 
-    const updatedCustomer = await Customer.findById(customerId)
+    const updatedCustomer = await Customer.findOne(filter)
       .select("-userId -__v -createdAt -updatedAt")
       .lean();
+
+    await recordAuditEvent({
+      ownerId: customer.userId,
+      actor: user,
+      action: "comment_deleted",
+      entityType: "comment",
+      entityId: commentId,
+      customerId,
+      customerName: customerDisplayName(customer),
+      summary: `Smazán komentář zákazníka ${customerDisplayName(customer)}`,
+      changes: [
+        {
+          field: "comment",
+          label: "Komentář",
+          from: comment.text,
+          to: "—",
+        },
+      ],
+    });
 
     return NextResponse.json(
       { customer: normalizeCustomer(updatedCustomer) },

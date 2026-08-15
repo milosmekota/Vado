@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toObjectId(value) {
   try {
@@ -67,6 +71,14 @@ export async function PATCH(req, { params }) {
     const placeId =
       typeof body?.placeId === "string" ? body.placeId.trim() : "";
 
+    const existingCustomer = await Customer.findOne(filter).lean();
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 },
+      );
+    }
+
     const updated = await Customer.findOneAndUpdate(
       filter,
       {
@@ -87,6 +99,35 @@ export async function PATCH(req, { params }) {
         { status: 404 },
       );
     }
+
+    await recordAuditEvent({
+      ownerId: existingCustomer.userId,
+      actor: user,
+      action: "location_updated",
+      entityType: "customerLocation",
+      entityId: customerId,
+      customerId,
+      customerName: customerDisplayName(updated),
+      summary: `Aktualizována poloha zákazníka ${customerDisplayName(updated)}`,
+      changes: [
+        {
+          field: "formattedAddress",
+          label: "Nalezená adresa",
+          from: existingCustomer.location?.formattedAddress,
+          to: formattedAddress,
+        },
+        {
+          field: "coordinates",
+          label: "Souřadnice",
+          from:
+            existingCustomer.location?.lat == null ||
+            existingCustomer.location?.lng == null
+              ? "—"
+              : `${existingCustomer.location.lat}, ${existingCustomer.location.lng}`,
+          to: `${lat}, ${lng}`,
+        },
+      ],
+    });
 
     return NextResponse.json({ customer: updated }, { status: 200 });
   } catch (err) {

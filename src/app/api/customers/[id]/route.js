@@ -4,6 +4,12 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 import { getCurrentUser } from "@/lib/auth";
 import { upsertPlannedServiceEventFromCustomerField } from "@/services/customer.service";
+import {
+  buildChanges,
+  CUSTOMER_FIELD_LABELS,
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toObjectId(value) {
   try {
@@ -158,6 +164,14 @@ export async function PUT(req, { params }) {
     const body = await req.json().catch(() => ({}));
     const allowed = pickAllowedCustomerFields(body);
 
+    const existingCustomer = await Customer.findOne(filter).lean();
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found or forbidden" },
+        { status: 404 },
+      );
+    }
+
     const updatedCustomer = await Customer.findOneAndUpdate(
       filter,
       { $set: allowed },
@@ -173,16 +187,78 @@ export async function PUT(req, { params }) {
       );
     }
 
+    let finalCustomer = updatedCustomer;
+
     if (Object.prototype.hasOwnProperty.call(allowed, "nextService")) {
-      const finalCustomer = await upsertPlannedServiceEventFromCustomerField(
+      finalCustomer = await upsertPlannedServiceEventFromCustomerField(
         updatedCustomer._id?.toString?.() ?? String(updatedCustomer._id ?? ""),
         allowed.nextService ?? "",
       );
-
-      return NextResponse.json({ customer: finalCustomer }, { status: 200 });
     }
 
-    return NextResponse.json({ customer: updatedCustomer }, { status: 200 });
+    const changes = buildChanges(
+      existingCustomer,
+      finalCustomer,
+      Object.keys(allowed),
+      CUSTOMER_FIELD_LABELS,
+    );
+
+    if (changes.length > 0) {
+      await recordAuditEvent({
+        ownerId: existingCustomer.userId,
+        actor: user,
+        action: "customer_updated",
+        entityType: "customer",
+        entityId: customerId,
+        customerId,
+        customerName: customerDisplayName(finalCustomer),
+        summary: `Upraven zákazník ${customerDisplayName(finalCustomer)}`,
+        changes,
+      });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(allowed, "nextService")) {
+      const previousEvent = existingCustomer.serviceEvents?.find(
+        (event) => event?.source === "customer-field",
+      );
+      const nextEvent = finalCustomer.serviceEvents?.find(
+        (event) => event?.source === "customer-field",
+      );
+
+      if (previousEvent?.date !== nextEvent?.date) {
+        const action = !nextEvent
+          ? "service_deleted"
+          : previousEvent
+            ? "service_moved"
+            : "service_created";
+        const summary = !nextEvent
+          ? `Zrušen plánovaný servis zákazníka ${customerDisplayName(finalCustomer)}`
+          : previousEvent
+            ? `Přesunut servis zákazníka ${customerDisplayName(finalCustomer)}`
+            : `Naplánován servis zákazníka ${customerDisplayName(finalCustomer)}`;
+
+        await recordAuditEvent({
+          ownerId: existingCustomer.userId,
+          actor: user,
+          action,
+          entityType: "serviceEvent",
+          entityId: nextEvent?.id || previousEvent?.id || customerId,
+          customerId,
+          customerName: customerDisplayName(finalCustomer),
+          summary,
+          changes: [
+            {
+              field: "date",
+              label: "Termín servisu",
+              from: previousEvent?.date,
+              to: nextEvent?.date,
+            },
+          ],
+        });
+      }
+    }
+
+    return NextResponse.json({ customer: finalCustomer }, { status: 200 });
   } catch (err) {
     console.error(err);
     return NextResponse.json(
@@ -216,7 +292,7 @@ export async function DELETE(req, { params }) {
     }
 
     const deleted = await Customer.findOneAndDelete(filter)
-      .select("_id")
+      .select("_id userId firstName lastName email serialNumber")
       .lean();
 
     if (!deleted) {
@@ -225,6 +301,17 @@ export async function DELETE(req, { params }) {
         { status: 404 },
       );
     }
+
+    await recordAuditEvent({
+      ownerId: deleted.userId,
+      actor: user,
+      action: "customer_deleted",
+      entityType: "customer",
+      entityId: deleted._id,
+      customerId: deleted._id,
+      customerName: customerDisplayName(deleted),
+      summary: `Smazán zákazník ${customerDisplayName(deleted)}`,
+    });
 
     return NextResponse.json(
       { ok: true, id: deleted._id.toString() },

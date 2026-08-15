@@ -6,6 +6,10 @@ import {
   createCustomer,
 } from "@/services/customer.service";
 import crypto from "crypto";
+import {
+  customerDisplayName,
+  recordAuditEvent,
+} from "@/services/audit.service";
 
 function toIntOrNull(value) {
   const n = Number(value);
@@ -98,6 +102,35 @@ export async function POST(req) {
       allowed.lastName = allowed.lastName.trim();
 
     const customer = await createCustomer(user.id, allowed);
+
+    await recordAuditEvent({
+      ownerId: user.id,
+      actor: user,
+      action: "customer_created",
+      entityType: "customer",
+      entityId: customer._id,
+      customerId: customer._id,
+      customerName: customerDisplayName(customer),
+      summary: `Založen zákazník ${customerDisplayName(customer)}`,
+    });
+
+    if (initialComment) {
+      const comment = customer.comments?.[0];
+      await recordAuditEvent({
+        ownerId: user.id,
+        actor: user,
+        action: "comment_added",
+        entityType: "comment",
+        entityId: comment?.id || customer._id,
+        customerId: customer._id,
+        customerName: customerDisplayName(customer),
+        summary: `Přidán úvodní komentář zákazníkovi ${customerDisplayName(customer)}`,
+        changes: [
+          { field: "comment", label: "Komentář", from: "—", to: initialComment },
+        ],
+      });
+    }
+
     return NextResponse.json({ customer }, { status: 201 });
   } catch (err) {
     console.error(err);
