@@ -69,6 +69,11 @@ přečti `docs/TECHNICAL_NOTES.md`.
 - Texty uživatelského rozhraní jsou česky.
 - Dashboard používá pro moduly responzivní dlaždice: 2 sloupce na mobilu,
   3 na tabletu a až 6 na velké obrazovce. Pořadí končí `Nastavení`, `Historie`.
+- Statistiky dashboardu používají samostatný responzivní grid: 2 sloupce na
+  mobilu a až 5 na velké obrazovce; poslední mobilní karta zabírá celou šířku.
+- Dashboard začíná sekcí `Moduly` bez samostatného nadpisu `Dashboard`.
+- Tlačítko `Vado` v horní liště je zřetelný návrat na hlavní stránku a obsahuje
+  ikonu domů, rámeček, hover stav a přístupný popisek.
 - V mobilním kalendáři je titulkem události příjmení zákazníka; původní název
   servisu zůstává v detailu události.
 - Tajné hodnoty patří do `.env.local`; dokumentují se jen názvy proměnných.

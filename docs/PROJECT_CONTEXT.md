@@ -26,6 +26,15 @@ popisků. Na mobilu jsou ve dvou sloupcích, na tabletu ve třech a na velké ob
 až v šesti. Pořadí modulů je Zákazníci, Kalendář, AI asistent, Mapa, Nastavení a
 Historie.
 
+Stránka začíná přímo sekcí `Moduly` bez nadpisu `Dashboard`. Servisní statistiky
+mají vlastní sjednocené karty s barevnými stavovými ikonami. Na mobilu jsou ve
+dvou sloupcích a poslední karta využívá celou šířku; na velké obrazovce se všech
+pět statistik skládá do jedné řady.
+
+Název `Vado` v levé části horní lišty funguje jako domovské tlačítko. Pro jasnou
+interaktivitu má ikonu domů, viditelný rámeček, pozadí, hover stav, tooltip a
+`aria-label`.
+
 Měsíční kalendář používá na mobilu jako krátký titulek události příjmení zákazníka.
 Na větších obrazovkách zobrazuje název servisní události. Detail události vždy
 zachovává původní název servisu a celé jméno zákazníka.

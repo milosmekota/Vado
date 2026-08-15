@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Container,
   Typography,
-  Grid,
   Card,
   CardActionArea,
   CardContent,
@@ -121,24 +120,82 @@ function DashCard({
   );
 }
 
-function StatCard({ label, value, icon, onClick, subtitle }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  onClick,
+  subtitle,
+  color = "primary",
+}) {
   return (
-    <Card sx={{ height: "100%" }}>
+    <Card
+      variant="outlined"
+      sx={{
+        height: "100%",
+        borderRadius: 3,
+        overflow: "hidden",
+        transition: "transform 160ms ease, box-shadow 160ms ease",
+        "@media (hover: hover)": {
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: 4,
+          },
+        },
+      }}
+    >
       <CardActionArea onClick={onClick} sx={{ height: "100%" }}>
-        <CardContent sx={{ height: "100%" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
-            {icon}
-            <Typography variant="subtitle1" sx={{ lineHeight: 1.2 }}>
+        <CardContent
+          sx={{
+            height: "100%",
+            minHeight: { xs: 132, sm: 142 },
+            p: { xs: 1.5, sm: 2 },
+            display: "flex",
+            flexDirection: "column",
+            "&:last-child": { pb: { xs: 1.5, sm: 2 } },
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+            <Box
+              sx={(theme) => {
+                const paletteColor =
+                  theme.palette[color] || theme.palette.primary;
+                return {
+                  width: 32,
+                  height: 32,
+                  flex: "0 0 auto",
+                  borderRadius: 2,
+                  display: "grid",
+                  placeItems: "center",
+                  color: paletteColor.main,
+                  bgcolor: `${paletteColor.main}18`,
+                  "& .MuiSvgIcon-root": { fontSize: 20 },
+                };
+              }}
+            >
+              {icon}
+            </Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 700, lineHeight: 1.2 }}
+            >
               {label}
             </Typography>
           </Box>
 
-          <Typography variant="h4" sx={{ lineHeight: 1.1, mb: 0.5 }}>
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 500, lineHeight: 1, mb: 0.75 }}
+          >
             {value}
           </Typography>
 
           {subtitle ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: "auto", lineHeight: 1.25 }}
+            >
               {subtitle}
             </Typography>
           ) : null}
@@ -217,10 +274,6 @@ export default function DashboardClient() {
 
   return (
     <Container sx={{ mt: 4 }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Dashboard
-      </Typography>
-
       <Typography variant="h6" sx={{ mb: 1 }}>
         Moduly
       </Typography>
@@ -307,57 +360,72 @@ export default function DashboardClient() {
         ) : customersError ? (
           <Alert severity="warning">{customersError}</Alert>
         ) : (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, minmax(0, 1fr))",
+                sm: "repeat(3, minmax(0, 1fr))",
+                lg: "repeat(5, minmax(0, 1fr))",
+              },
+              gap: { xs: 1.25, sm: 2 },
+            }}
+          >
+            <Box>
               <StatCard
                 label="Zákazníků celkem"
                 value={stats.total}
                 icon={<PeopleAltIcon />}
                 subtitle="Klikni pro zobrazení všech"
                 onClick={() => router.push("/customers")}
+                color="primary"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={4}>
+            <Box>
               <StatCard
                 label="Servis po termínu"
                 value={stats.overdue}
-                icon={<ErrorIcon sx={{ color: "error.main" }} />}
+                icon={<ErrorIcon />}
                 subtitle="> 24 měsíců"
                 onClick={() => router.push("/customers?service=overdue")}
+                color="error"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={4}>
+            <Box>
               <StatCard
                 label="Blížící se servis"
                 value={stats.dueSoon}
-                icon={<WarningAmberIcon sx={{ color: "warning.main" }} />}
+                icon={<WarningAmberIcon />}
                 subtitle="12–24 měsíců"
                 onClick={() => router.push("/customers?service=dueSoon")}
+                color="warning"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={4}>
+            <Box>
               <StatCard
                 label="Servis OK"
                 value={stats.ok}
-                icon={<CheckCircleIcon sx={{ color: "success.main" }} />}
+                icon={<CheckCircleIcon />}
                 subtitle="< 12 měsíců"
                 onClick={() => router.push("/customers?service=ok")}
+                color="success"
               />
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} sm={6} md={4}>
+            <Box sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}>
               <StatCard
                 label="Bez vyplněného servisu"
                 value={stats.missing}
-                icon={<HelpOutlineIcon sx={{ color: "text.secondary" }} />}
+                icon={<HelpOutlineIcon />}
                 subtitle="chybí / neplatné datum"
                 onClick={() => router.push("/customers?service=missing")}
+                color="info"
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         )}
       </Box>
     </Container>

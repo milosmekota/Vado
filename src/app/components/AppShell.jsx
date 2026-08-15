@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useColorMode } from "@/app/ThemeRegistry";
@@ -62,18 +63,36 @@ export default function AppShell({ children, initialUser = null }) {
         <>
           <AppBar position="fixed">
             <Toolbar>
-              <Button
-                color="inherit"
-                onClick={handleGoHome}
-                sx={{
-                  textTransform: "none",
-                  fontSize: "1.1rem",
-                  px: 0,
-                  minWidth: "auto",
-                }}
-              >
-                Vado
-              </Button>
+              <Tooltip title="Přejít na hlavní stránku">
+                <Button
+                  color="inherit"
+                  variant="outlined"
+                  startIcon={<HomeRoundedIcon />}
+                  onClick={handleGoHome}
+                  aria-label="Přejít na hlavní stránku Vado"
+                  sx={{
+                    minWidth: "auto",
+                    px: { xs: 1, sm: 1.5 },
+                    py: 0.5,
+                    borderRadius: 2,
+                    borderColor: "rgba(255, 255, 255, 0.6)",
+                    bgcolor: "rgba(255, 255, 255, 0.1)",
+                    color: "common.white",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    "& .MuiButton-startIcon": {
+                      mr: 0.6,
+                      "& .MuiSvgIcon-root": { fontSize: 19 },
+                    },
+                    "&:hover": {
+                      borderColor: "common.white",
+                      bgcolor: "rgba(255, 255, 255, 0.2)",
+                    },
+                  }}
+                >
+                  Vado
+                </Button>
+              </Tooltip>
 
               <Box sx={{ flexGrow: 1 }} />
 
